@@ -1,0 +1,27 @@
+#!/bin/bash
+
+in=(delay)
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+delay=$1
+
+for dc in {1..2}; do
+  for n in $(cat dc-$dc); do
+    other_subnet=$(subnets $(other_dc $dc) 1)
+    ssh root@$n "
+tc qdisc del dev $ETH root
+tc qdisc add dev $ETH root handle 1: prio bands 2 priomap 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+tc qdisc add dev $ETH parent 1:1 handle 10: pfifo
+tc qdisc add dev $ETH parent 1:2 handle 20: netem delay ${delay}ms
+tc filter add dev $ETH parent 1: prio 2 protocol ip u32 match ip dst $other_subnet flowid 1:2" &
+#tc -s qdisc ls dev $ETH
+  done
+done; wait
+
+update_conf_info delay $delay
+
+exit 0

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+in=(riak\|basho_bench)
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+system=$1
+
+for n in $(cat all_nodes); do
+  rsync -avz --delete --delete-excluded --exclude=app.config --exclude=vm.args $HOME/$system root@$n:/opt &
+done
+wait

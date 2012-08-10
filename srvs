@@ -1,0 +1,32 @@
+#!/bin/bash
+
+in=(servers clients ev\|tl)
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+rm -fr $TMP_DIR/*
+
+servers=$1
+clients=$2
+consistency=$3
+
+create_all_nodes
+head -$servers all_nodes > srv_nodes
+head -1 srv_nodes > srv_nodes_1
+sed '1 d' < srv_nodes > srv_nodes_n
+
+tail -$clients all_nodes > bench_nodes
+
+((srvs_dc=servers/2))
+head -$srvs_dc srv_nodes > dc-1
+tail -$srvs_dc srv_nodes > dc-2
+
+update_conf_info servers $servers
+update_conf_info clients $clients
+
+$CMB_HOME/net
+$CMB_HOME/riak $consistency
+
+exit 0

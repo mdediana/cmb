@@ -1,0 +1,39 @@
+#!/bin/bash
+
+skip_cleaning=${1:-no}
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+WAIT_TIME=240
+
+if [[ $skip_cleaning != -s ]]; then
+  for n in $(cat srv_nodes); do
+    ssh root@$n "rm -fr $RIAK_DATA_DIR/*" &
+  done; wait
+fi
+
+for n in $(cat srv_nodes); do
+  echo "Starting: $n"
+  [[ $(ssh root@$n "$RIAK_BIN_DIR/riak ping") = pong ]] && continue
+  ssh root@$n "rm -fr $RIAK_LOG_DIR/*
+$RIAK_BIN_DIR/riak start"
+done
+
+rn1=$(cat riak_nodes_1)
+for n in $(cat srv_nodes_n); do
+  echo "Joining: $n"
+  ssh root@$n "$RIAK_BIN_DIR/riak-admin join $rn1"
+done
+
+echo -n "Waiting for ring to be ready"
+n1=$(cat srv_nodes_1)
+while [ $(ssh root@$n1 "$RIAK_BIN_DIR/riak-admin ringready | wc -l") -ne $(cat srv_nodes | wc -l) ]; do
+  echo -n .; sleep 3
+done
+
+echo -e "\nWaiting for ring to get stable: $WAIT_TIME"
+sleep $WAIT_TIME
+
+exit 0

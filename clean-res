@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -ue
+
+rm -fr $CMB_HOME/res/*

@@ -1,0 +1,9 @@
+#!/bin/bash
+
+for i in {1..5}; do
+  echo $i
+  $CMB_HOME/conf-bench any 1:0
+  $CMB_HOME/run-bench
+  $CMB_HOME/conf-bench lat 1:0
+  $CMB_HOME/run-bench
+done

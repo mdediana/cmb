@@ -1,0 +1,77 @@
+#!/bin/bash
+
+in=(ev\|any\|lat locality popularity rw_ratio)
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+$CMB_HOME/bench $1 $2 $3 $4
+
+res_dir=$CMB_HOME/res
+cur_dir=$res_dir/$(date +%Y%m%d_%H%M%S); mkdir -p $cur_dir
+rm -f $res_dir/latest; ln -s $cur_dir $res_dir/latest
+
+riak_stats() {
+  local stat=$1
+  local total=0
+  for n in $(cat srv_nodes); do
+    v=$(ssh root@$n "$RIAK_BIN_DIR/riak-admin status | grep $stat | cut -d: -f2")
+    # to understand why, try 'i=0;j=0;((i+=j));echo $?' (and cry)
+    set +e; ((total+=v)); set -e
+  done
+  echo $total
+}
+
+disk_cache() {
+  local total=0
+  for n in $(cat srv_nodes); do
+    v=$(ssh root@$n "free -m | egrep Mem:" | awk '{print $7}')
+    # to understand why, try 'i=0;j=0;((i+=j));echo $?' (and cry)
+    set +e; ((total+=v)); set -e
+  done
+  echo $total
+}
+
+# in case of conn_failed errors, remember to check ulimit
+cli=($(cat bench_nodes))
+
+# drop cache
+for n in $(cat srv_nodes); do
+  ssh root@$n "echo 3 > /proc/sys/vm/drop_caches" &
+done; wait
+
+c0=$(riak_stats read_repairs_total)
+m0=$(riak_stats master_migrations_total)
+d0=$(disk_cache)
+for c in "${cli[@]}"; do
+  run_basho_bench $c bench.config &
+done; wait
+
+for n in "${cli[@]}"; do
+  cp bench*.config.$n $cur_dir
+  rsync -azq root@$n:$BENCH_HOME/tests/current/ $cur_dir/bch-$n &
+done; wait
+
+for n in $(cat srv_nodes); do
+  cp vm.args.$n app.config.$n $cur_dir
+  rsync -azq root@$n:$RIAK_LOG_DIR $cur_dir/srv-$n &
+done; wait
+
+c1=$(riak_stats read_repairs_total)
+m1=$(riak_stats master_migrations_total)
+d1=$(disk_cache)
+echo "conflicts=$((c1-c0))
+migrations=$((m1-m0))
+disk_cache=$((d1-d0))" > $cur_dir/metrics
+cp conf_info $cur_dir
+
+echo -e "\n\nErrors:"
+# egrep exit with 1 in case of no match
+echo "Servers:"; set +e; egrep -r "\[error\]" $cur_dir; set -e
+echo "errors.csv:"; cat $cur_dir/bch-*/errors.csv
+
+cat $cur_dir/conf_info $cur_dir/metrics
+
+exit 0

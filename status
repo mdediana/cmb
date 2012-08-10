@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+for n in $(cat srv_nodes); do
+  echo -n "$(echo $n | cut -d. -f1): "
+  ssh root@$n "free -m | egrep Mem:" | awk '{print $2,$3,$7}'
+done
+
+for n in $(cat srv_nodes); do
+  echo -n "$(echo $n | cut -d. -f1): "
+  ssh root@$n "du -hs /tmp/data/bitcask"
+done

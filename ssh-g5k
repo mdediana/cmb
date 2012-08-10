@@ -1,0 +1,13 @@
+#!/bin/bash
+
+cmd=${2:-""}
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+node_id=$1
+
+ssh root@$CLUSTER-$node_id $cmd
+
+exit 0

@@ -1,0 +1,68 @@
+#!/bin/bash
+
+set -u
+source $CMB_HOME/env.sh
+
+srvs=16
+clis=4
+
+# rw_ratios
+# 0:1 - 50% reads / 50% writes (writes = 100% reads)
+# 1:1 - 66% reads / 33% writes (writes = 50% reads)
+# 3:1 - 80% reads / 20% writes (writes = 25% reads)
+# 9:1 - 91% reads / 9% writes (writes = 10% reads)
+# 1:0 - 100% reads (writes = 0% reads)
+
+# used in the first run, not in the others (substituted by 3:1)
+# 1:9 - 82% reads / 18% writes (writes = 21% reads)
+
+# Other interesting ratios, not used
+# 8:1 - 90% reads / 10% writes (writes = 9% reads)
+# 2:1 - 75% reads / 25% writes (writes = 33% reads)
+
+modes=(ev any lat)
+rs=(0:1 1:0 9:1 1:1 3:1)
+ls=(0.5 0.9)
+ps=(uni par)
+ds=(0 50 100 150)
+
+((tests=${#modes[@]} * ${#rs[@]} * ${#ls[@]} * ${#ps[@]} * ${#ds[@]}))
+echo =========================
+echo "Number of tests: $tests"
+echo =========================
+
+rem=$tests
+t0=$(date +%s)
+for mode in "${modes[@]}"; do
+  [[ $mode = ev ]] && c=ev || c=tl
+  $CMB_HOME/srvs $srvs $clis $c
+  $CMB_HOME/delay 0
+  $CMB_HOME/start
+  $CMB_HOME/load
+
+  for r in "${rs[@]}"; do
+    for l in "${ls[@]}"; do
+      for p in "${ps[@]}"; do
+        for d in "${ds[@]}"; do
+          t1=$(date +%s)
+          et=-
+          if [[ $rem -ne $tests ]]; then
+            ((et=rem * (t1 - t0) / (tests - rem)))
+            # doesn't work for diffs > a day 
+            et=$(date --date "1970-01-01 $et sec" +%T)
+          fi
+          echo ====================================
+          echo "$c $mode $l $p $r $d ($rem / $et)"
+          echo ====================================
+          sleep 15
+          $CMB_HOME/delay $d
+          $CMB_HOME/run $mode $l $p $r
+          ((rem--))
+        done
+      done
+    done
+  done
+
+  $CMB_HOME/delay 0
+  $CMB_HOME/stop
+done

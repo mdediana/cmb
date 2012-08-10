@@ -1,0 +1,63 @@
+#!/bin/bash
+
+in=(ev\|any\|lat locality popularity rw_ratio)
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+make_conf() {
+  local conf_file=$1; local ips=$2; local cli=$3
+  local tl_mode=$4; local loc=$5; local keygen=$6; local ops=$7
+
+  local tmp_file=$TMP_DIR/$conf_file.$cli
+  sed "s/\${ips}/$ips/
+s/\${tl_mode}/$tl_mode/
+s/\${locality}/$(printf "%1.2f" $loc)/
+s/\${keygen}/$keygen/
+s/\${operations}/$ops/" $CMB_HOME/$conf_file > $tmp_file 
+  scp $tmp_file root@$cli:$BENCH_HOME/$conf_file
+}
+
+[[ $1 = lat ]] && tl_mode=latest || tl_mode=any  # any for ev also
+locality=$2
+popularity=$3
+rw_ratio=$4
+
+case $popularity in
+  uni) keygen=uniform_int;;
+  par) keygen=truncated_pareto_int 
+esac
+
+locs=("" $locality $(bc <<< "1-$locality")) # dismiss 0, align with dcs
+
+gets=$(echo $rw_ratio | cut -d':' -f1)
+upds=$(echo $rw_ratio | cut -d':' -f2)
+ops=""
+[[ $gets != 0 ]] && ops="{get, $gets}"
+[[ $gets != 0 ]] && [[ $upds != 0 ]] && ops=$ops,
+[[ $upds != 0 ]] && ops=$ops"{update_existing, $upds}"
+
+
+clis=$(cat bench_nodes | wc -l)
+((clis_dc=clis/2))
+head -$clis_dc bench_nodes > bench_nodes-1
+tail -$clis_dc bench_nodes > bench_nodes-2
+  
+ips_dc=$(cat ips-1 | wc -l)  # both dcs have the same ip count
+((ips_cli=ips_dc/clis_dc))
+for dc in {1..2}; do
+  for ((c=1, i=1; c<=clis_dc; c++, i+=ips_cli)); do
+    ips_str=$(sed -n "$i,$((i+ips_cli-1)) s/\(.*\)/\"\1\"/p" ips-$dc | paste -d, -s)
+    cli=$(sed -n "$c p" bench_nodes-$dc)
+    make_conf bench.config $ips_str $cli $tl_mode ${locs[dc]} $keygen "$ops"
+  done
+done
+
+update_conf_info tl_mode $tl_mode
+update_conf_info popularity $popularity
+update_conf_info locality $locality
+update_conf_info rw_ratio $rw_ratio
+
+exit 0

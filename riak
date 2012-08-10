@@ -1,0 +1,45 @@
+#!/bin/bash
+
+in=(ev\|tl)
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+consistency=$1
+
+case $consistency in
+  ev) get_fsm=riak_kv_get_fsm
+      put_fsm=riak_kv_put_fsm;;
+  tl) get_fsm=riak_kv_timeline_get_fsm
+      put_fsm=riak_kv_timeline_put_fsm
+esac
+
+id=1
+for dc in {1..2}; do
+  for n in $(cat dc-$dc); do
+    riak_name="dc$dc-$((id++))@$n"
+    ip=$(to_ip $n)
+
+    sed "s/\${node_name}/$riak_name/" < $CMB_HOME/vm.args > vm.args.$n
+    sed "s/\${dc}/$dc/
+s/\${ip}/$ip/
+s/\${get_fsm}/$get_fsm/
+s/\${put_fsm}/$put_fsm/
+s/\${log_level}/$LOG_LEVEL/" < $CMB_HOME/app.config > app.config.$n
+
+    echo $riak_name >> riak_nodes
+
+    scp app.config.$n root@$n:$RIAK_HOME/etc/app.config &
+    scp vm.args.$n root@$n:$RIAK_HOME/etc/vm.args &
+  done
+done
+wait
+
+head -1 riak_nodes > riak_nodes_1
+sed '1 d' < riak_nodes > riak_nodes_n
+
+update_conf_info consistency $consistency
+
+exit 0

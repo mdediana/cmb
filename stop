@@ -1,0 +1,26 @@
+#!/bin/bash
+
+set -u
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+for n in $(cat srv_nodes_n); do
+  echo "Leaving: $n"
+  ssh root@$n "$RIAK_BIN_DIR/riak-admin leave" 
+done
+
+n1=$(cat srv_nodes_1)
+for n in $(cat riak_nodes_n); do
+  echo "Removing: $n"
+  ssh root@$n1 "$RIAK_BIN_DIR/riak-admin force-remove $n"
+done
+
+echo "Waiting before stopping nodes"
+sleep 30
+
+for n in $(cat srv_nodes); do
+  echo "Stopping: $n"
+  ssh root@$n "$RIAK_BIN_DIR/riak stop"
+done
+
+exit 0

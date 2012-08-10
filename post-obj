@@ -1,0 +1,12 @@
+#!/bin/bash
+
+req_version=${2:-latest}
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+content=$(date)
+
+ip=$(to_ip $1)
+curl -v -d "$content" -H "Content-Type: text/plain" http://$ip:8098/riak/test?req_version=$req_version 2>&1 | sed "s/< Location: \(.*\)\r/\1/w obj_keys"

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+source $CMB_HOME/env.sh
+
+ram=${1:-$((NODE_RAM-5))}
+
+set -ue
+cd $TMP_DIR
+
+WAIT_TIME=30
+
+echo "Munching: $ram GB"
+for n in $(cat srv_nodes); do
+  ssh root@$n "
+echo 3 > /proc/sys/vm/drop_caches
+killall -q munch
+munch $ram" &
+done
+
+echo "Waiting: $WAIT_TIME"
+sleep $WAIT_TIME
+
+exit 0 

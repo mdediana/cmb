@@ -1,0 +1,11 @@
+#!/bin/bash
+
+req_version=${2:-latest}
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+key=$(cat obj_keys | tr -d '\r')
+ip=$(to_ip $1)
+curl -v http://$ip:8098$key?req_version=$req_version 2>&1 | sed 's/< X-Riak-Vclock: \(.*\)/\1/w obj_vclocks'
