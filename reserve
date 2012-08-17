@@ -1,6 +1,6 @@
 #!/bin/bash
 
-in=(walltime nodes after_min)
+in=(walltime nodes [+after_min|when])
 [[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
 set -ue
@@ -8,16 +8,15 @@ source $CMB_HOME/env.sh
 
 walltime=$1
 nodes=$2
-after_min=$3
+[[ $3 == +* ]] && when=$(date --date "$3 min" +"%Y-%m-%d %H:%M:%S") || when=$3
 
 rm blacklist.conf; touch blacklist.conf
 
 echo "Reserving nodes"
-when=$(date --date "+$after_min min" +"%Y-%m-%d %H:%M:%S")
 oarsub -t deploy -t allow_classic_ssh -l slash_22=2+{"cluster='$CLUSTER'"}nodes=$nodes,walltime=$walltime -r "$when"
 
 echo "Sleeping until $when"
-sleep $((after_min * 60))
+sleep $(($(date --date "$when" +%s) - $(date +%s)))
 echo -n Waiting
 while [ $(oarstat -j $(jobid) -s | cut -d' ' -f2) = Waiting ]; do
   sleep 3; echo -n .

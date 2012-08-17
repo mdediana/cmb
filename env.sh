@@ -53,7 +53,7 @@ rm -fr tests/*
 }
 
 create_all_nodes() {
-  oarstat -u -f | sed -n 's/ *assigned_hostnames = \(.*\)/\1/p' | tr '+' '\n' > $TMP_DIR/all_nodes
+  oarstat -u -f -j $(jobid) | sed -n 's/ *assigned_hostnames = \(.*\)/\1/p' | tr '+' '\n' > $TMP_DIR/all_nodes
   for n in $(cat $CMB_HOME/blacklist.conf); do
     sed -i "/$n/ d" $TMP_DIR/all_nodes
   done

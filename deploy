@@ -11,7 +11,6 @@ create_all_nodes
 
 echo "Deploying nodes"
 #kadeploy3 -f all --multi-server -a $ENV_URL/$ENV_FILE -k $ENV_URL/authorized_keys > $outfile
-#kadeploy3 -e $ENV_NAME -f all_nodes -k > $outfile
 kadeploy3 -a $ENV_FILE -f all_nodes -k > $outfile
 [[ $? -ne 0 ]] && echo "Deployment failed" && exit 1
 set +e; [[ -n $(egrep "(ERROR|Nodes not correctly deployed|Cannot run the deployment)" $outfile) ]] && echo -e "Deployment failed.\n $(cat $outfile)" && exit 1
