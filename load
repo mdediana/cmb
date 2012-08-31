@@ -16,7 +16,7 @@ run_basho_bench $cli bench-load.config
 
 echo -e "\n\nErrors:"
 for n in $(cat srv_nodes); do
-  set +e; ssh root@$n "egrep -r \"\\[error\\]\" $RIAK_LOG_DIR"; set -e
+  ssh root@$n "egrep -r \"\\[error\\]\" $RIAK_LOG_DIR || true"
 done
 
 exit 0

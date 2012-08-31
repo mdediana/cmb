@@ -9,9 +9,7 @@ cd $TMP_DIR
 
 $CMB_HOME/bench $1 $2 $3 $4
 
-res_dir=$CMB_HOME/res
-cur_dir=$res_dir/$(date +%Y%m%d_%H%M%S); mkdir -p $cur_dir
-rm -f $res_dir/latest; ln -s $cur_dir $res_dir/latest
+cur_dir=$RES_DIR/$(date +%Y%m%d_%H%M%S); mkdir -p $cur_dir
 
 riak_stats() {
   local stat=$1
@@ -19,7 +17,7 @@ riak_stats() {
   for n in $(cat srv_nodes); do
     v=$(ssh root@$n "$RIAK_BIN_DIR/riak-admin status | grep $stat | cut -d: -f2")
     # to understand why, try 'i=0;j=0;((i+=j));echo $?' (and cry)
-    set +e; ((total+=v)); set -e
+    ((total+=v)) || true
   done
   echo $total
 }
@@ -29,7 +27,7 @@ disk_cache() {
   for n in $(cat srv_nodes); do
     v=$(ssh root@$n "free -m | egrep Mem:" | awk '{print $7}')
     # to understand why, try 'i=0;j=0;((i+=j));echo $?' (and cry)
-    set +e; ((total+=v)); set -e
+    ((total+=v)) || true
   done
   echo $total
 }
@@ -69,9 +67,10 @@ cp conf_info $cur_dir
 
 echo -e "\n\nErrors:"
 # egrep exit with 1 in case of no match
-echo "Servers:"; set +e; egrep -r "\[error\]" $cur_dir; set -e
+echo "Servers:"; egrep -r "\[error\]" $cur_dir || true
 echo "errors.csv:"; cat $cur_dir/bch-*/errors.csv
 
 cat $cur_dir/conf_info $cur_dir/metrics
 
+touch $cur_dir/finished
 exit 0

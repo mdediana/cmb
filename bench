@@ -20,7 +20,7 @@ s/\${operations}/$ops/" $CMB_HOME/$conf_file > $tmp_file
   scp $tmp_file root@$cli:$BENCH_HOME/$conf_file
 }
 
-[[ $1 = lat ]] && tl_mode=latest || tl_mode=any  # any for ev also
+[[ $1 == lat ]] && tl_mode=latest || tl_mode=any  # any for ev also
 locality=$2
 popularity=$3
 rw_ratio=$4
