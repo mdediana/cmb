@@ -1,0 +1,28 @@
+#!/bin/bash
+
+set -ue
+source $CMB_HOME/env.sh
+cd $RES_DIR
+
+for d in $(ls -r $RES_DIR); do
+  if [[ ! -e $d/finished ]]; then
+    echo "Removing unfinished: $d"
+    rm -r $d
+    continue
+  else
+    echo "Last finished: $d"
+    params=""
+    for k in tl_mode rw_ratio locality popularity delay; do
+      v=$(get_prop $d/conf_info $k)
+      if [[ $k == tl_mode ]]; then
+        [[ $(get_prop $d/conf_info consistency) == ev ]] && v=ev
+        [[ $v == latest ]] && v=lat
+      fi
+      params=$params" "$v
+    done
+    echo "run-all params:$params"
+    break
+  fi
+done
+
+exit 0
