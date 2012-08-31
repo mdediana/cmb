@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -u
+set -ue
 source $CMB_HOME/env.sh
 
 srvs=16
@@ -13,16 +13,23 @@ clis=4
 # 9:1 - 91% reads / 9% writes (writes = 10% reads)
 # 1:0 - 100% reads (writes = 0% reads)
 
-modes=(ev any lat)
+ms=(ev any lat)
 rs=(0:1 1:0 9:1 1:1 3:1)
 ls=(0.5 0.9)
 ps=(uni par)
 ds=(0 50 100 150)
 
-skip() {
-#  ([[ $c == tl ]] && [[ $mode == any ]] && [[ $r == 1:1 ]] && [[ $l == 0.5 ]]) || \
-#  && echo true || echo false
-  echo false
+[[ $# -gt 0 ]] && skip=true || skip=false
+m0=${1:-${ms[0]}}
+r0=${2:-${rs[0]}}
+l0=${3:-${ls[0]}}
+p0=${4:-${ps[0]}}
+d0=${5:-${ds[0]}}
+
+match_last() {
+  [[ $m == $m0 ]] && [[ $r == $r0 ]] && [[ $l == $l0 ]] && \
+  [[ $p == $p0 ]] && [[ $d == $d0 ]] && \
+  echo true || echo false
 }
 
 est_time() {
@@ -36,38 +43,47 @@ est_time() {
   echo $et
 }
 
-((rem=${#modes[@]} * ${#rs[@]} * ${#ls[@]} * ${#ps[@]} * ${#ds[@]}))
-echo =========================
+((rem=${#ms[@]} * ${#rs[@]} * ${#ls[@]} * ${#ps[@]} * ${#ds[@]}))
 echo "Number of tests: $rem"
-echo =========================
 
+started=false
 exec=0
 t0=$(date +%s)
-for mode in "${modes[@]}"; do
-  [[ $mode = ev ]] && c=ev || c=tl
-  $CMB_HOME/srvs $srvs $clis $c
-  $CMB_HOME/delay 0
-  $CMB_HOME/start
-  $CMB_HOME/load
+for m in "${ms[@]}"; do
+  [[ $m == ev ]] && c=ev || c=tl
+
+  if [[ $started == false ]] && ([[ $skip == false ]] || \
+     [[ $skip == true ]] && [[ $m == $m0 ]]); then
+    $CMB_HOME/srvs $srvs $clis $c
+    $CMB_HOME/delay 0
+    $CMB_HOME/start
+    $CMB_HOME/load
+    started=true
+  fi
 
   for r in "${rs[@]}"; do
     for l in "${ls[@]}"; do
       for p in "${ps[@]}"; do
         for d in "${ds[@]}"; do
-          echo ===========================================
-          echo "$c $mode $l $p $r $d ($rem / $(est_time))"
-          echo ===========================================
+          echo "- $m $r $l $p $d ($rem / $(est_time))"
           ((rem--))
-          [[ $(skip) == true ]] && echo Skipping && continue
-          sleep 15
-          $CMB_HOME/delay $d
-          $CMB_HOME/run $mode $l $p $r
-          ((exec++))
+          if [[ $skip == true ]]; then
+            [[ $(match_last) == true ]] && skip=false
+            echo Skipped
+          else
+            sleep 15
+            $CMB_HOME/delay $d
+            $CMB_HOME/run $m $l $p $r
+            ((exec++)) || true # force exit status != 1
+          fi
         done
       done
     done
   done
 
-  $CMB_HOME/delay 0
-  $CMB_HOME/stop
+  if [[ $started == true ]]; then
+    $CMB_HOME/delay 0
+    $CMB_HOME/stop
+    started=false
+  fi
 done
