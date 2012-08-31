@@ -1,6 +1,7 @@
 #!/bin/bash
 
-export TMP_DIR=$CMB_HOME/tmp
+export TMP_DIR=$HOME/tmp
+export RES_DIR=$HOME/res
 export RIAK_HOME=/opt/riak/rel/riak
 export RIAK_BIN_DIR=$RIAK_HOME/bin
 export RIAK_DATA_DIR=/tmp/data	# /tmp is mounted on sda5, bigger than sda3
@@ -22,11 +23,13 @@ export LOG_LEVEL=error
 
 [[ $CLUSTER == parapluie ]] && ETH=eth1
 
+# return all running jobids (there should be only one)
 jobid() {
-  echo $(oarstat -u | tail -1 | cut -d' ' -f1)
+  echo $(oarstat -u | awk 'NR > 2 {print $1, $5}' | grep R | cut -d' ' -f1)
 }
 
 subnets() {
+  [[ -z $(jobid) ]] && echo "No running job" && return 1
   g5k-subnets -j $(jobid) -a | sed -n "$1p" | cut -f$2
 }
 
@@ -53,6 +56,7 @@ rm -fr tests/*
 }
 
 create_all_nodes() {
+  [[ -z $(jobid) ]] && echo "No running job" && return 1
   oarstat -u -f -j $(jobid) | sed -n 's/ *assigned_hostnames = \(.*\)/\1/p' | tr '+' '\n' > $TMP_DIR/all_nodes
   for n in $(cat $CMB_HOME/blacklist.conf); do
     sed -i "/$n/ d" $TMP_DIR/all_nodes
@@ -68,6 +72,11 @@ update_conf_info() {
   else 
     sed -i "s/$k=.*/$k=$v/" $f
   fi
+}
+
+get_prop() {
+  local f=$1; local k=$2
+  sed -n "s/$k=\(.*\)/\1/p" $f 
 }
 
 # g5k hw: https://www.grid5000.fr/mediawiki/index.php/Sophia:Hardware

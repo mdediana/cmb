@@ -7,13 +7,20 @@ rm -fr $TMP_DIR/*
 
 outfile=$TMP_DIR/kadeploy.out
 
+echo -n Waiting for job to be ready
+while [[ -z $(jobid) ]]; do sleep 10; echo -n .; done && echo
+
 create_all_nodes
 
 echo "Deploying nodes"
 #kadeploy3 -f all --multi-server -a $ENV_URL/$ENV_FILE -k $ENV_URL/authorized_keys > $outfile
 kadeploy3 -a $ENV_FILE -f all_nodes -k > $outfile
 [[ $? -ne 0 ]] && echo "Deployment failed" && exit 1
-set +e; [[ -n $(egrep "(ERROR|Nodes not correctly deployed|Cannot run the deployment)" $outfile) ]] && echo -e "Deployment failed.\n $(cat $outfile)" && exit 1
-echo "Deployment finished"; set -e
 
+if [[ -n $(egrep "(ERROR|Nodes not correctly deployed|Cannot run the deployment)" $outfile || true) ]]; then
+  echo -e "Deployment failed.\n $(cat $outfile)"
+  exit 1
+fi
+
+echo "Deployment finished"
 exit 0
