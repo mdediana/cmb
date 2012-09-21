@@ -1,5 +1,6 @@
 #!/bin/bash
 
 set -ue
+source $CMB_HOME/env.sh
 
 rm -fr $RES_DIR/*

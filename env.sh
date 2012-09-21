@@ -9,15 +9,8 @@ export RIAK_LOG_DIR=$RIAK_HOME/log
 export BENCH_HOME=/opt/basho_bench
 export ENV_FILE=$IMG_HOME/squeeze-x64-riak.env
 export SITE=rennes
-#export SITE=sophia
-#export CLUSTER=paradent
-#export CLUSTER=parapluie
 export CLUSTER=parapide
-#export CLUSTER=suno # has sas disks, use 1 cli for every 2 srvs
-#export CLUSTER=sol
 export ETH=eth0
-#export NODE_RAM=32 # paradent
-#export NODE_RAM=4 # sol
 export LOG_LEVEL=error
 #export LOG_LEVEL=info
 
@@ -78,8 +71,3 @@ get_prop() {
   local f=$1; local k=$2
   sed -n "s/$k=\(.*\)/\1/p" $f 
 }
-
-# g5k hw: https://www.grid5000.fr/mediawiki/index.php/Sophia:Hardware
-# sas x sata: http://blog.lewan.com/2009/09/14/sas-vs-sata-differences-technology-and-cost/
-# suno: sas (8 srvs / 4 clis ok)
-# parapluie: sata (8 srvs / 4 clis has worst perf than 2 clis)
