@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+riak_stats() {
+  local stat=$1
+  local total=0
+  for n in $(cat srv_nodes); do
+    v=$(ssh root@$n "$RIAK_BIN_DIR/riak-admin status | grep $stat | cut -d: -f2")
+    # to understand why, try 'i=0;j=0;((i+=j));echo $?' (and cry)
+    ((total+=v)) || true
+  done
+  echo $total
+}
+
+t0=$(date +%s)
+while :; do
+  migs=$(riak_stats master_migrations_total)
+  echo "$(($(date +%s)-$t0)) $migs"
+  sleep 15
+done

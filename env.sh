@@ -13,6 +13,7 @@ export CLUSTER=parapide
 export ETH=eth0
 export LOG_LEVEL=error
 #export LOG_LEVEL=info
+export TOTAL_KEYS=2000000
 
 [[ $CLUSTER == parapluie ]] && ETH=eth1
 

@@ -4,19 +4,17 @@ set -ue
 source $CMB_HOME/env.sh
 cd $TMP_DIR
 
-# load from a single basho bench
-# in case of conn_failed errors, remember to check ulimit
-ips=$(cat ips-1 ips-2 | sed -n "s/\(.*\)/\"\1\"/p" | paste -d, -s)
-sed "s/\${ips}/$ips/" $CMB_HOME/bench-load.config > bench-load.config
+$CMB_HOME/conf-load
 
-cli=$(head -1 bench_nodes)
-scp bench-load.config root@$cli:$BENCH_HOME
-
-run_basho_bench $cli bench-load.config
+echo Loading
+for c in $(cat load_nodes); do
+  run_basho_bench $c bench-load.config &
+done; wait
 
 echo -e "\n\nErrors:"
 for n in $(cat srv_nodes); do
   ssh root@$n "egrep -r \"\\[error\\]\" $RIAK_LOG_DIR || true"
 done
 
+echo "Loading finished"
 exit 0

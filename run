@@ -1,13 +1,13 @@
 #!/bin/bash
 
 in=(ev\|any\|lat locality popularity rw_ratio)
-[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1 
 
 set -ue
 source $CMB_HOME/env.sh
 cd $TMP_DIR
 
-$CMB_HOME/bench $1 $2 $3 $4
+$CMB_HOME/conf-run $@
 
 cur_dir=$RES_DIR/$(date +%Y%m%d_%H%M%S); mkdir -p $cur_dir
 
@@ -32,9 +32,6 @@ disk_cache() {
   echo $total
 }
 
-# in case of conn_failed errors, remember to check ulimit
-cli=($(cat bench_nodes))
-
 # drop cache
 for n in $(cat srv_nodes); do
   ssh root@$n "echo 3 > /proc/sys/vm/drop_caches" &
@@ -43,11 +40,12 @@ done; wait
 c0=$(riak_stats read_repairs_total)
 m0=$(riak_stats master_migrations_total)
 d0=$(disk_cache)
-for c in "${cli[@]}"; do
+echo Running
+for c in $(cat bench_nodes); do
   run_basho_bench $c bench.config &
 done; wait
 
-for n in "${cli[@]}"; do
+for n in $(cat bench_nodes); do
   cp bench*.config.$n $cur_dir
   rsync -azq root@$n:$BENCH_HOME/tests/current/ $cur_dir/bch-$n &
 done; wait
@@ -73,4 +71,5 @@ echo "errors.csv:"; cat $cur_dir/bch-*/errors.csv
 cat $cur_dir/conf_info $cur_dir/metrics
 
 touch $cur_dir/finished
+echo "Run finished"
 exit 0
