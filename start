@@ -6,8 +6,6 @@ set -ue
 source $CMB_HOME/env.sh
 cd $TMP_DIR
 
-WAIT_TIME=240
-
 if [[ $skip_cleaning != -s ]]; then
   for n in $(cat srv_nodes); do
     ssh root@$n "rm -fr $RIAK_DATA_DIR/*" &
@@ -18,8 +16,8 @@ for n in $(cat srv_nodes); do
   echo "Starting: $n"
   [[ $(ssh root@$n "$RIAK_BIN_DIR/riak ping") = pong ]] && continue
   ssh root@$n "rm -fr $RIAK_LOG_DIR/*
-$RIAK_BIN_DIR/riak start"
-done
+$RIAK_BIN_DIR/riak start" &
+done; wait
 
 rn1=$(cat riak_nodes_1)
 for n in $(cat srv_nodes_n); do
@@ -32,8 +30,17 @@ n1=$(cat srv_nodes_1)
 while [ $(ssh root@$n1 "$RIAK_BIN_DIR/riak-admin ringready | wc -l") -ne $(cat srv_nodes | wc -l) ]; do
   echo -n .; sleep 3
 done
+echo
 
-echo -e "\nWaiting for ring to get stable: $WAIT_TIME"
-sleep $WAIT_TIME
+srvs=$(cat srv_nodes | wc -l)
+echo -n "Waiting for handoff to finish"
+while :; do
+  echo -n .; sleep 10
+  for s in $(ssh root@$n1 "$RIAK_BIN_DIR/riak-admin member_status" | awk -v l=$((srvs+3)) 'NR > 3 && NR <= l { print $3 }'); do
+    [[ $s != "--" ]] && continue 2
+  done
+  break
+done
+echo
 
 exit 0

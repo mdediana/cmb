@@ -6,8 +6,8 @@ cd $TMP_DIR
 
 for n in $(cat srv_nodes_n); do
   echo "Leaving: $n"
-  ssh root@$n "$RIAK_BIN_DIR/riak-admin leave" 
-done
+  ssh root@$n "$RIAK_BIN_DIR/riak-admin leave" & 
+done; wait
 
 n1=$(cat srv_nodes_1)
 for n in $(cat riak_nodes_n); do
@@ -16,11 +16,11 @@ for n in $(cat riak_nodes_n); do
 done
 
 echo "Waiting before stopping nodes"
-sleep 30
+sleep 10
 
 for n in $(cat srv_nodes); do
   echo "Stopping: $n"
-  ssh root@$n "$RIAK_BIN_DIR/riak stop"
-done
+  ssh root@$n "$RIAK_BIN_DIR/riak stop" &
+done; wait
 
 exit 0
