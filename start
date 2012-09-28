@@ -6,40 +6,29 @@ set -ue
 source $CMB_HOME/env.sh
 cd $TMP_DIR
 
-if [[ $skip_cleaning != -s ]]; then
-  for n in $(cat srv_nodes); do
-    ssh root@$n "rm -fr $RIAK_DATA_DIR/*" &
-  done; wait
-fi
+pongs=($(ssh_all_p srv_nodes "$RIAK_BIN_DIR/riak ping"))
+for p in "${pongs[@]}"; do [[ $p == pong ]] && $CMB_HOME/stop && break; done
 
-for n in $(cat srv_nodes); do
-  echo "Starting: $n"
-  [[ $(ssh root@$n "$RIAK_BIN_DIR/riak ping") = pong ]] && continue
-  ssh root@$n "rm -fr $RIAK_LOG_DIR/*
-$RIAK_BIN_DIR/riak start" &
-done; wait
+[[ $skip_cleaning != -s ]] && ssh_all_p srv_nodes "rm -fr $RIAK_DATA_DIR/*"
 
+echo Starting
+ssh_all_p srv_nodes "rm -fr $RIAK_LOG_DIR/*; $RIAK_BIN_DIR/riak start"
+
+echo Joining
 rn1=$(cat riak_nodes_1)
-for n in $(cat srv_nodes_n); do
-  echo "Joining: $n"
-  ssh root@$n "$RIAK_BIN_DIR/riak-admin join $rn1"
-done
+ssh_all srv_nodes_n "$RIAK_BIN_DIR/riak-admin join $rn1"
 
 echo -n "Waiting for ring to be ready"
 n1=$(cat srv_nodes_1)
-while [ $(ssh root@$n1 "$RIAK_BIN_DIR/riak-admin ringready | wc -l") -ne $(cat srv_nodes | wc -l) ]; do
+srvs=$(cat srv_nodes | wc -l)
+while [ $(ssh root@$n1 "$RIAK_BIN_DIR/riak-admin ringready" | wc -l) -ne $srvs ]; do
   echo -n .; sleep 3
 done
 echo
 
-srvs=$(cat srv_nodes | wc -l)
 echo -n "Waiting for handoff to finish"
-while :; do
+while [ $(ssh root@$n1 "$RIAK_BIN_DIR/riak-admin member_status" | awk '{ print $3 }' | sed -n "4,$((srvs+3)) p" | grep '\-\-' | wc -l) -ne $srvs ]; do
   echo -n .; sleep 10
-  for s in $(ssh root@$n1 "$RIAK_BIN_DIR/riak-admin member_status" | awk -v l=$((srvs+3)) 'NR > 3 && NR <= l { print $3 }'); do
-    [[ $s != "--" ]] && continue 2
-  done
-  break
 done
 echo
 

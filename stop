@@ -4,23 +4,16 @@ set -u
 source $CMB_HOME/env.sh
 cd $TMP_DIR
 
-for n in $(cat srv_nodes_n); do
-  echo "Leaving: $n"
-  ssh root@$n "$RIAK_BIN_DIR/riak-admin leave" & 
-done; wait
+echo Leaving
+ssh_all_p srv_nodes_n "$RIAK_BIN_DIR/riak-admin leave"
 
+echo Removing
 n1=$(cat srv_nodes_1)
 for n in $(cat riak_nodes_n); do
-  echo "Removing: $n"
   ssh root@$n1 "$RIAK_BIN_DIR/riak-admin force-remove $n"
 done
 
-echo "Waiting before stopping nodes"
-sleep 10
-
-for n in $(cat srv_nodes); do
-  echo "Stopping: $n"
-  ssh root@$n "$RIAK_BIN_DIR/riak stop" &
-done; wait
+echo Stopping
+ssh_all_p srv_nodes "$RIAK_BIN_DIR/riak stop"
 
 exit 0

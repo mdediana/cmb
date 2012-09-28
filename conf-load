@@ -9,15 +9,15 @@ head -1 bench_nodes-2 >> load_nodes
 
 ((keys_dc=TOTAL_KEYS/2))
 for dc in {1..2}; do
-  [[ $dc -eq 1 ]] && start_key=1 || ((start_key=1+keys_dc))
+  [[ $dc -eq 1 ]] && start_key=0 || start_key=$keys_dc
   ips_str=$(sed -n "s/\(.*\)/\"\1\"/p" ips-$dc | paste -d, -s)
   cli=$(sed -n "$dc p" load_nodes)
 
   sed "s/\${ips}/$ips_str/
 s/\${start_key}/$start_key/
-s/\${num_keys}/$keys_dc/" $CMB_HOME/bench-load.config > bench-load.config.$cli
+s/\${num_keys}/$((keys_dc))/" $CMB_HOME/bench-load.config > bench-load.config.$cli
 
-  scp bench-load.config.$cli root@$cli:$BENCH_HOME/bench-load.config
-done
+  scp -q bench-load.config.$cli root@$cli:$BENCH_HOME/bench-load.config &
+done; wait
 
 exit 0

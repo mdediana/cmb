@@ -31,11 +31,10 @@ s/\${log_level}/$LOG_LEVEL/" < $CMB_HOME/app.config > app.config.$n
 
     echo $riak_name >> riak_nodes
 
-    scp app.config.$n root@$n:$RIAK_HOME/etc/app.config &
-    scp vm.args.$n root@$n:$RIAK_HOME/etc/vm.args &
+    scp -q app.config.$n root@$n:$RIAK_HOME/etc/app.config &
+    scp -q vm.args.$n root@$n:$RIAK_HOME/etc/vm.args &
   done
-done
-wait
+done; wait
 
 head -1 riak_nodes > riak_nodes_1
 sed '1 d' < riak_nodes > riak_nodes_n

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-in=(servers clients ev\|tl)
+in=(servers clients)
 [[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
 set -ue
@@ -10,7 +10,6 @@ rm -fr $TMP_DIR/*
 
 servers=$1
 clients=$2
-consistency=$3
 
 create_all_nodes
 head -$servers all_nodes > srv_nodes
@@ -31,6 +30,5 @@ update_conf_info servers $servers
 update_conf_info clients $clients
 
 $CMB_HOME/net
-$CMB_HOME/riak $consistency
 
 exit 0

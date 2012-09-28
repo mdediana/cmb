@@ -9,32 +9,28 @@ cp $CMB_HOME/hosts hosts-2
 
 site_gw=$(to_ip gw.$SITE.grid5000.fr)
 for dc in {1..2}; do
+  sn=("" $(subnets $dc 1-5))
+  subnet=${sn[1]}
+  broadcast=${sn[2]}
+  netmask=${sn[3]}
+  global_net=${sn[5]}
+
   for n in $(cat dc-$dc); do
     ip_g5k=$(to_ip $n)
-    echo $ip_g5k >> ips-$dc
-
-    subnet=$(subnets $dc 1)
     ip_sub=$(ip_in_subnet $subnet $ip_g5k)
     short=$(echo $n | cut -d'.' -f1)
+    echo $ip_g5k >> ips-$dc
     echo -e "$ip_sub\t$n\t$short" >> hosts-$(other_dc $dc)
-
-    broadcast=$(subnets $dc 2)
-    netmask=$(subnets $dc 3)
-    global_net=$(subnets $dc 5)
 
     ssh root@$n "
 ifconfig $ETH:0 $ip_sub broadcast $broadcast netmask $netmask
 route del -net $global_net netmask $netmask
 route add -net $global_net netmask $netmask gw $site_gw dev $ETH:0" &
   done
-done
-wait
+done; wait
 
 for dc in {1..2}; do
-  for n in $(cat dc-$dc); do
-    scp hosts-$dc root@$n:/etc/hosts &
-  done
+  for_all_p dc-$dc "scp -q hosts-$dc root@\$n:/etc/hosts"
 done
-wait
 
 exit 0

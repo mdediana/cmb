@@ -1,18 +1,32 @@
 #!/bin/bash
 
-in=(ev\|any\|lat locality popularity rw_ratio)
+in=(-w\|-r ev\|any\|lat locality popularity duration\|rw_ratio)
 [[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
 set -ue
 source $CMB_HOME/env.sh
 cd $TMP_DIR
 
-[[ $1 == lat ]] && tl_mode=latest || tl_mode=any  # any for ev also
-locality=$2
-popularity=$3
-rw_ratio=$4
+option=$1
+mode=$2
+locality=$3
+pop=$4
 
-case $popularity in
+case $option in
+  -w) conf_file=bench-warmup.config
+      rw_ratio="0:1"
+      dur=$5;;
+  -r) conf_file=bench.config
+      rw_ratio=$5
+      dur=$RUN_DURATION
+esac
+
+[[ $mode == lat ]] && tl_mode=latest || tl_mode=any  # any for ev also
+
+loc[1]=$(printf "%1.2f" $locality)
+loc[2]=$(printf "%1.2f" $(bc <<< "1-$locality"))
+
+case $pop in
   uni) keygen=uniform_int;;
   par) keygen=truncated_pareto_int 
 esac
@@ -30,9 +44,6 @@ clis=$(cat bench_nodes | wc -l)
 ips_dc=$(cat ips-1 | wc -l)  # both dcs have the same ip count
 ((ips_cli=ips_dc/clis_dc))
 for dc in {1..2}; do
-  [[ $dc -eq 1 ]] && loc=$locality || loc=$(bc <<< "1-$locality")
-  loc=$(printf "%1.2f" $loc)
-
   for ((c=1, i=1; c<=clis_dc; c++, i+=ips_cli)); do
     ips_str=$(sed -n "$i,$((i+ips_cli-1)) s/\(.*\)/\"\1\"/p" ips-$dc | paste -d, -s)
     cli=$(sed -n "$c p" bench_nodes-$dc)
@@ -40,18 +51,19 @@ for dc in {1..2}; do
     # we have seen some update_existing errors for the last key,
     # so we stop one key before just to avoid confusion
     sed "s/\${ips}/$ips_str/
+s/\${duration}/$dur/
 s/\${num_keys}/$((TOTAL_KEYS-1))/
 s/\${tl_mode}/$tl_mode/
-s/\${locality}/$loc/
+s/\${locality}/${loc[dc]}/
 s/\${keygen}/$keygen/
-s/\${operations}/$ops/" $CMB_HOME/bench.config > bench.config.$cli
+s/\${operations}/$ops/" $CMB_HOME/bench.config > $conf_file.$cli
 
-    scp bench.config.$cli root@$cli:$BENCH_HOME/bench.config
+    scp -q $conf_file.$cli root@$cli:$BENCH_HOME/$conf_file &
   done
-done
+done; wait
 
 update_conf_info tl_mode $tl_mode
-update_conf_info popularity $popularity
+update_conf_info popularity $pop
 update_conf_info locality $locality
 update_conf_info rw_ratio $rw_ratio
 

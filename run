@@ -7,65 +7,56 @@ set -ue
 source $CMB_HOME/env.sh
 cd $TMP_DIR
 
-$CMB_HOME/conf-run $@
+$CMB_HOME/conf-run -r $@
 
 cur_dir=$RES_DIR/$(date +%Y%m%d_%H%M%S); mkdir -p $cur_dir
 
-riak_stats() {
-  local stat=$1
-  local total=0
-  for n in $(cat srv_nodes); do
-    v=$(ssh root@$n "$RIAK_BIN_DIR/riak-admin status | grep $stat | cut -d: -f2")
-    # to understand why, try 'i=0;j=0;((i+=j));echo $?' (and cry)
-    ((total+=v)) || true
-  done
-  echo $total
+disk_cache() {
+  agg srv_nodes "free -m | egrep Mem: | awk '{print \$7}'"
 }
 
-disk_cache() {
-  local total=0
-  for n in $(cat srv_nodes); do
-    v=$(ssh root@$n "free -m | egrep Mem:" | awk '{print $7}')
-    # to understand why, try 'i=0;j=0;((i+=j));echo $?' (and cry)
-    ((total+=v)) || true
-  done
-  echo $total
+tx_rx() {
+  local node_file=$1
+  local stat=$2
+  agg $node_file "ifconfig eth0 | egrep -o '$stat bytes:[0-9]*' | cut -d: -f2"
+}
+
+metrics() {
+  local i=$1
+  rr[$i]=$(riak_stats read_repairs_total)
+  mig[$i]=$(riak_stats master_migrations_total)
+  cache[$i]=$(disk_cache)
+  tx_srv[$i]=$(tx_rx srv_nodes TX)
+  rx_srv[$i]=$(tx_rx srv_nodes RX)
+  tx_bch[$i]=$(tx_rx bench_nodes TX)
+  rx_bch[$i]=$(tx_rx bench_nodes RX)
 }
 
 # drop cache
-for n in $(cat srv_nodes); do
-  ssh root@$n "echo 3 > /proc/sys/vm/drop_caches" &
-done; wait
-
-c0=$(riak_stats read_repairs_total)
-m0=$(riak_stats master_migrations_total)
-d0=$(disk_cache)
+echo Preparing 
+ssh_all_p srv_nodes "echo 3 > /proc/sys/vm/drop_caches"
+metrics 0
 echo Running
-for c in $(cat bench_nodes); do
-  run_basho_bench $c bench.config &
-done; wait
+for_all_p bench_nodes "run_basho_bench \$n bench.config"
+echo Getting results
+for_all_p bench_nodes "rsync -azq root@\$n:$BENCH_HOME/tests/current/ $cur_dir/bch-\$n"
+for_all_p srv_nodes "rsync -azq root@\$n:$RIAK_LOG_DIR $cur_dir/srv-\$n"
 
-for n in $(cat bench_nodes); do
-  cp bench*.config.$n $cur_dir
-  rsync -azq root@$n:$BENCH_HOME/tests/current/ $cur_dir/bch-$n &
-done; wait
-
-for n in $(cat srv_nodes); do
-  cp vm.args.$n app.config.$n $cur_dir
-  rsync -azq root@$n:$RIAK_LOG_DIR $cur_dir/srv-$n &
-done; wait
-
-c1=$(riak_stats read_repairs_total)
-m1=$(riak_stats master_migrations_total)
-d1=$(disk_cache)
-echo "conflicts=$((c1-c0))
-migrations=$((m1-m0))
-disk_cache=$((d1-d0))" > $cur_dir/metrics
+metrics 1
+echo "conflicts=$((rr[1]-rr[0]))
+migrations=$((mig[1]-mig[0]))
+disk_cache=$((cache[1]-cache[0]))
+tx_srv=$((tx_srv[1]-tx_srv[0]))
+rx_srv=$((rx_srv[1]-rx_srv[0]))
+tx_bch=$((tx_bch[1]-tx_bch[0]))
+rx_bch=$((rx_bch[1]-rx_bch[0]))" > $cur_dir/metrics
 cp conf_info $cur_dir
+cp bench*.config.* $cur_dir
+cp vm.args.* app.config.* $cur_dir
 
 echo -e "\n\nErrors:"
 # egrep exit with 1 in case of no match
-echo "Servers:"; egrep -r "\[error\]" $cur_dir || true
+echo "Servers:"; egrep -r "\[error\]" $cur_dir/srv-* || true
 echo "errors.csv:"; cat $cur_dir/bch-*/errors.csv
 
 cat $cur_dir/conf_info $cur_dir/metrics

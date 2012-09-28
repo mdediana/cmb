@@ -9,7 +9,4 @@ cd $TMP_DIR
 
 system=$1
 
-for n in $(cat all_nodes); do
-  rsync -avz --delete --delete-excluded --exclude=app.config --exclude=vm.args $HOME/$system root@$n:/opt &
-done
-wait
+for_all_p all_nodes "rsync -avz --delete --delete-excluded --exclude=app.config --exclude=vm.args $HOME/$system root@\$n:/opt"

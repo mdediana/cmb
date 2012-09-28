@@ -14,6 +14,12 @@ export ETH=eth0
 export LOG_LEVEL=error
 #export LOG_LEVEL=info
 export TOTAL_KEYS=2000000
+export RUN_DURATION=3
+declare -Ax WARMUP_DURATION=(
+  ["0.5_uni"]=20
+  ["0.5_par"]=5
+  ["0.9_uni"]=35
+  ["0.9_par"]=20)
 
 [[ $CLUSTER == parapluie ]] && ETH=eth1
 
@@ -23,8 +29,9 @@ jobid() {
 }
 
 subnets() {
+  local line=$1; local cols=$2
   [[ -z $(jobid) ]] && echo "No running job" && return 1
-  g5k-subnets -j $(jobid) -a | sed -n "$1p" | cut -f$2
+  g5k-subnets -j $(jobid) -a | sed -n "${line}p" | cut -f$cols
 }
 
 other_dc() {
@@ -49,6 +56,11 @@ rm -fr tests/*
 ./basho_bench $config"
 }
 
+riak_stats() {
+  local stat=$1
+  agg srv_nodes "$RIAK_BIN_DIR/riak-admin status | grep $stat | cut -d: -f2"
+}
+
 create_all_nodes() {
   [[ -z $(jobid) ]] && echo "No running job" && return 1
   oarstat -u -f -j $(jobid) | sed -n 's/ *assigned_hostnames = \(.*\)/\1/p' | tr '+' '\n' > $TMP_DIR/all_nodes
@@ -71,4 +83,35 @@ update_conf_info() {
 get_prop() {
   local f=$1; local k=$2
   sed -n "s/$k=\(.*\)/\1/p" $f 
+}
+
+for_all() {
+  local node_file=$1; local cmd=$2
+  for n in $(cat $node_file); do eval $cmd; done
+}
+for_all_p() {
+  local node_file=$1; local cmd=$2
+  for n in $(cat $node_file); do 
+    eval $cmd &
+  done; wait
+}
+
+ssh_all() {
+  local node_file=$1; local cmd=$2
+  for n in $(cat $node_file); do ssh root@$n "$cmd"; done
+}
+
+ssh_all_p() {
+  local node_file=$1; local cmd=$2
+  for n in $(cat $node_file); do
+    ssh root@$n "$cmd" &
+  done; wait
+}
+
+agg() {
+  local node_file=$1; local cmd=$2
+  local total=0
+  local vs=($(ssh_all_p $node_file "$cmd"))
+  for v in "${vs[@]}"; do ((total+=v)) || true; done
+  echo $total
 }

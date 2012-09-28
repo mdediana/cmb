@@ -10,17 +10,15 @@ cd $TMP_DIR
 delay=$1
 
 for dc in {1..2}; do
-  for n in $(cat dc-$dc); do
-    other_subnet=$(subnets $(other_dc $dc) 1)
-    ssh root@$n "
+  other_subnet=$(subnets $(other_dc $dc) 1)
+  ssh_all_p dc-$dc "
 tc qdisc del dev $ETH root
 tc qdisc add dev $ETH root handle 1: prio bands 2 priomap 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 tc qdisc add dev $ETH parent 1:1 handle 10: pfifo
 tc qdisc add dev $ETH parent 1:2 handle 20: netem delay ${delay}ms
-tc filter add dev $ETH parent 1: prio 2 protocol ip u32 match ip dst $other_subnet flowid 1:2" &
+tc filter add dev $ETH parent 1: prio 2 protocol ip u32 match ip dst $other_subnet flowid 1:2"
 #tc -s qdisc ls dev $ETH
-  done
-done; wait
+done
 
 update_conf_info delay $delay
 
