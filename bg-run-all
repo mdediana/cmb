@@ -6,6 +6,6 @@ option=${1:--s}
 
 case $option in
   -s) ps -C run-all;;
-  -k) pid=$(ps -C check-migs -o pid=)
+  -k) pid=$(ps -C run-all -o pid=)
       kill -9 $pid
 esac 
