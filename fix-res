@@ -12,7 +12,7 @@ for d in $(ls -r $RES_DIR); do
   else
     echo "Last finished: $d"
     params=""
-    for k in tl_mode locality popularity tl_mode delay; do
+    for k in tl_mode locality popularity rw_ratio delay; do
       v=$(get_prop $d/conf_info $k)
       if [[ $k == tl_mode ]]; then
         [[ $(get_prop $d/conf_info consistency) == ev ]] && v=ev
