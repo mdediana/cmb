@@ -2,8 +2,10 @@
 
 set -ue
 source $CMB_HOME/env.sh
-cd $RES_DIR
 
+[[ ! -e $RES_DIR ]] && echo "No results dir" && exit 0
+
+cd $RES_DIR
 for d in $(ls -r $RES_DIR); do
   if [[ ! -e $d/finished ]]; then
     echo "Removing unfinished: $d"
@@ -20,7 +22,7 @@ for d in $(ls -r $RES_DIR); do
       fi
       params=$params" "$v
     done
-    echo "run-all params:$params"
+    echo "Last run:$params"
     break
   fi
 done
