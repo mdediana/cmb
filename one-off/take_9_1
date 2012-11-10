@@ -1,0 +1,36 @@
+#!/bin/bash
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+res_dir=$1
+pos=$2
+
+for dir in $(ls $res_dir); do
+  r=$(get_prop $res_dir/$dir/conf_info rw_ratio)
+  d=$(get_prop $res_dir/$dir/conf_info delay)
+
+  [[ $r == 9:1 ]] && ([[ $d -eq 75 ]] || [[ $d -eq 125 ]]) && mv $res_dir/$dir $HOME/res-archive/other/res_9:1_75_125
+done
+
+ms=(any lat ev)
+ls=(0.5 0.9)
+ps=(uni par)
+ds=(75 125)
+
+for m in "${ms[@]}"; do
+  [[ $m == ev ]] && c=ev || c=tl
+  for l in "${ls[@]}"; do
+    for p in "${ps[@]}"; do
+      for d in "${ds[@]}"; do
+        echo $m $l $p $d
+        src=$(grep "$m $l $p $d" index_9_1 | head -$pos | tail -1 | cut -d' ' -f5)
+        echo $src
+        mv $src $res_dir
+      done
+    done
+  done
+done
+
+exit 0

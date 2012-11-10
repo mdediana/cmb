@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+res_dir=$HOME/res_9_1
+
+rm -f index_9_1
+for dir in $(ls $res_dir); do
+  c=$(get_prop $res_dir/$dir/conf_info consistency)
+  m=$(get_prop $res_dir/$dir/conf_info tl_mode)
+  [[ $m == latest ]] && m=lat
+  l=$(get_prop $res_dir/$dir/conf_info locality)
+  p=$(get_prop $res_dir/$dir/conf_info popularity)
+  d=$(get_prop $res_dir/$dir/conf_info delay)
+
+  [[ $c == tl ]] && c=$m
+  echo $c $l $p $d $res_dir/$dir >> index_9_1
+done
+
+ms=(any lat ev)
+ls=(0.5 0.9)
+ps=(uni par)
+ds=(75 125)
+
+for m in "${ms[@]}"; do
+  [[ $m == ev ]] && c=ev || c=tl
+  for l in "${ls[@]}"; do
+    for p in "${ps[@]}"; do
+      for d in "${ds[@]}"; do
+        count=$(grep "$m $l $p $d" index_9_1 | wc -l)
+        echo $m $l $p $d $count
+      done
+    done
+  done
+done
+
+
+exit 0

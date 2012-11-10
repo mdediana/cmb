@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+res_dir=$HOME/res_w_2
+
+rm -f index_w_2
+for dir in $(ls $res_dir); do
+  r=$(get_prop $res_dir/$dir/conf_info rw_ratio)
+  l=$(get_prop $res_dir/$dir/conf_info locality)
+  p=$(get_prop $res_dir/$dir/conf_info popularity)
+  d=$(get_prop $res_dir/$dir/conf_info delay)
+
+  echo $r $l $p $d $res_dir/$dir >> index_w_2
+done
+
+exit 0
