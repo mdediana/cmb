@@ -6,6 +6,8 @@ source $CMB_HOME/env.sh
 srvs=16
 clis=4
 
+runs=1
+
 # rw_ratios
 # 0:1 - 50% reads / 50% writes (writes = 100% reads)
 # 1:1 - 66% reads / 33% writes (writes = 50% reads)
@@ -13,13 +15,14 @@ clis=4
 # 9:1 - 91% reads / 9% writes (writes = 10% reads)
 # 1:0 - 100% reads (writes = 0% reads)
 
-ms=(any lat ev)
+ms=(ev any lat)
 ls=(0.5 0.9)
 ps=(uni par)
 rs=(0:1 1:0 9:1 1:1 3:1)
-ds=(0 50 100 150)
+ds=(0 25 50 75 100 125 150)
 
 args=($($CMB_HOME/fix-res | tail -1 | sed -n 's/Last run: \(.*\)/\1/p'))
+args=${args:-''}
 [[ -n "$args" ]] && skip=true || skip=false
 
 m0=${args[0]:-${ms[0]}}
@@ -76,7 +79,10 @@ for m in "${ms[@]}"; do
           else
             sleep 15
             $CMB_HOME/delay $d
-            $CMB_HOME/run $m $l $p $r
+            for i in $(seq 1 $runs); do
+              $CMB_HOME/run $m $l $p $r
+              sleep 15
+            done
             ((exec++)) || true # when exec == 0, exit status == 1
           fi
         done
