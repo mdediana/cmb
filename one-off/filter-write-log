@@ -1,0 +1,6 @@
+#!/bin/bash
+
+for k in $(grep "0:02\|0:01.[1-9]" t1/x -n | cut -d: -f1); do
+  pid=$(grep "\<\<\"$k\"\>\>" t1/console.log.parapide-13.rennes.grid5000.fr | grep \<.*\> -o | cut -d@ -f1)
+  grep "$pid.*to coord" t1/console.log.parapide-13.rennes.grid5000.fr
+done

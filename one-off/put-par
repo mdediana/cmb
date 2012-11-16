@@ -1,0 +1,12 @@
+#!/bin/bash
+
+k1=5
+k2=9
+k3=26
+
+echo -- >&2
+/usr/bin/time -f %E curl -X PUT -d "$(date)" -H "Content-Type: text/plain" http://suno-42:8098/riak/test/$k1?req_version=any &
+/usr/bin/time -f %E curl -X PUT -d "$(date)" -H "Content-Type: text/plain" http://suno-42:8098/riak/test/$k2?req_version=any &
+#/usr/bin/time -f %E curl -X PUT -v -d "$(date)" -H "Content-Type: text/plain" http://suno-42:8098/riak/test/$k3?req_version=any &
+
+wait
