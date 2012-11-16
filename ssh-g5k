@@ -6,8 +6,9 @@ set -ue
 source $CMB_HOME/env.sh
 cd $TMP_DIR
 
-node_id=$1
-
-ssh root@$CLUSTER-$node_id $cmd
+# <cluster>-<id>.<site>.grid5000.fr
+id=$1
+n=$(cut -d. -f1 all_nodes | egrep "\-$id$")
+ssh root@$n $cmd
 
 exit 0

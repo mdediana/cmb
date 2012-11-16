@@ -16,6 +16,7 @@ case $consistency in
       put_fsm=riak_kv_timeline_put_fsm
 esac
 
+rm -f riak_nodes
 id=1
 for dc in {1..2}; do
   for n in $(cat dc-$dc); do

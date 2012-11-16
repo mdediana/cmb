@@ -4,10 +4,11 @@ set -ue
 source $CMB_HOME/env.sh
 cd $TMP_DIR
 
-cp $CMB_HOME/hosts hosts-1
-cp $CMB_HOME/hosts hosts-2
+echo -e "127.0.0.1\tlocalhost.localdomain\tlocalhost\n" > hosts-1
+cp hosts-1 hosts-2
 
-site_gw=$(to_ip gw.$SITE.grid5000.fr)
+site=$(hostname | cut -d. -f2)
+site_gw=$(to_ip gw.$site.grid5000.fr)
 for dc in {1..2}; do
   sn=("" $(subnets $dc 1-5))
   subnet=${sn[1]}

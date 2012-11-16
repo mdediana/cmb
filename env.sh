@@ -8,11 +8,12 @@ export RIAK_DATA_DIR=/tmp/data	# /tmp is mounted on sda5, bigger than sda3
 export RIAK_LOG_DIR=$RIAK_HOME/log
 export BENCH_HOME=/opt/basho_bench
 export ENV_FILE=$IMG_HOME/squeeze-x64-riak.env
-export SITE=rennes
+#export CLUSTER=helios
+#export CLUSTER=sol
+#export CLUSTER=suno
 export CLUSTER=parapide
-export ETH=eth0
-export LOG_LEVEL=error
-#export LOG_LEVEL=info
+#export LOG_LEVEL=error
+export LOG_LEVEL=info
 export TOTAL_KEYS=2000000
 export RUN_DURATION=3
 declare -Ax WARMUP_DURATION=(
@@ -21,7 +22,7 @@ declare -Ax WARMUP_DURATION=(
   ["0.9_uni"]=35
   ["0.9_par"]=20)
 
-[[ $CLUSTER == parapluie ]] && ETH=eth1
+[[ $CLUSTER != parapluie ]] && export ETH=eth0 || export ETH=eth1
 
 # return all running jobids (there should be only one)
 jobid() {
@@ -67,7 +68,8 @@ create_all_nodes() {
   for n in $(cat $CMB_HOME/blacklist.conf); do
     sed -i "/$n/ d" $TMP_DIR/all_nodes
   done
-  [[ -s $TMP_DIR/all_nodes ]] && return 0 || echo "No available nodes" && return 1 
+  [[ -z $(cat $TMP_DIR/all_nodes) ]] && echo "No available nodes" && return 1
+  return 0
 }
 
 update_conf_info() {
