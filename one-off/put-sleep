@@ -1,0 +1,15 @@
+#!/bin/bash
+
+host=$1
+t1=$2
+t2=$3
+
+k1=9
+
+for i in {1..10}; do
+  echo -- >&2
+  sleep $t1
+  /usr/bin/time -f %E curl -X PUT -d "$(date)" -H "Content-Type: text/plain" http://$host:8098/riak/test/$k1?req_version=any
+  sleep $t2
+  /usr/bin/time -f %E curl -X PUT -d "$(date)" -H "Content-Type: text/plain" http://$host:8098/riak/test/$k1?req_version=any
+done

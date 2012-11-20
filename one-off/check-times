@@ -1,0 +1,11 @@
+#!/bin/bash
+
+source $CMB_HOME/env.sh
+
+host=$1
+for i in {1..100}; do
+  echo $i
+  content=$(date)
+  /usr/bin/time -a -o runtimes -f %E curl -X PUT -v -d "$content" -H "Content-Type: text/plain" http://$host:8098/riak/test/$i?req_version=any
+  sleep 2 
+done
