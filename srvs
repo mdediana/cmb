@@ -18,11 +18,11 @@ sed '1 d' < srv_nodes > srv_nodes_n
 
 tail -$clients all_nodes > bench_nodes
 
-((srvs_dc=servers/2))
+((srvs_dc=servers/2)) || true	# may be 0
 head -$srvs_dc srv_nodes > dc-1
 tail -$srvs_dc srv_nodes > dc-2
 
-((clis_dc=clients/2))
+((clis_dc=clients/2)) || true	# may be 0
 head -$clis_dc bench_nodes > bench_nodes-1
 tail -$clis_dc bench_nodes > bench_nodes-2
 
