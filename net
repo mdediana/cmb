@@ -9,6 +9,7 @@ cp hosts-1 hosts-2
 
 site=$(hostname | cut -d. -f2)
 site_gw=$(to_ip gw.$site.grid5000.fr)
+eth=$(iface)
 for dc in {1..2}; do
   sn=("" $(subnets $dc 1-5))
   subnet=${sn[1]}
@@ -24,9 +25,9 @@ for dc in {1..2}; do
     echo -e "$ip_sub\t$n\t$short" >> hosts-$(other_dc $dc)
 
     ssh root@$n "
-ifconfig $ETH:0 $ip_sub broadcast $broadcast netmask $netmask
+ifconfig $eth:0 $ip_sub broadcast $broadcast netmask $netmask
 route del -net $global_net netmask $netmask
-route add -net $global_net netmask $netmask gw $site_gw dev $ETH:0" &
+route add -net $global_net netmask $netmask gw $site_gw dev $eth:0" &
   done
 done; wait
 

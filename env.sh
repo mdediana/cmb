@@ -8,10 +8,6 @@ export RIAK_DATA_DIR=/tmp/data	# /tmp is mounted on sda5, bigger than sda3
 export RIAK_LOG_DIR=$RIAK_HOME/log
 export BENCH_HOME=/opt/basho_bench
 export ENV_FILE=$IMG_HOME/squeeze-x64-riak.env
-#export CLUSTER=helios
-#export CLUSTER=sol
-#export CLUSTER=suno
-export CLUSTER=parapide
 #export LOG_LEVEL=error
 export LOG_LEVEL=info
 export TOTAL_KEYS=2000000
@@ -21,8 +17,6 @@ declare -Ax WARMUP_DURATION=(
   ["0.5_par"]=5
   ["0.9_uni"]=35
   ["0.9_par"]=20)
-
-[[ $CLUSTER != parapluie ]] && export ETH=eth0 || export ETH=eth1
 
 # return all running jobids (there should be only one)
 jobid() {
@@ -47,6 +41,11 @@ ip_in_subnet() {
   local first_octets=$(echo $1 | cut -d. -f1-3)
   local last_octet=$(echo $2 | cut -d. -f4)
   echo $first_octets.$last_octet
+}
+
+iface() {
+  local cluster=$(head -1 all_nodes | cut -d- -f1)
+  [[ $cluster != parapluie ]] && echo eth0 || echo eth1
 }
 
 run_basho_bench() {
