@@ -10,8 +10,8 @@ source $CMB_HOME/env.sh
 # 9:1 - 91% reads / 9% writes (writes = 10% reads)
 # 1:0 - 100% reads (writes = 0% reads)
 
-#ms=(ev any lat)
-ms=(any)
+#ms=(ev1 ev2 any lat)
+ms=(ev2)
 #ls=(0.5 0.9)
 ls=(0.5)
 #ps=(uni par)
@@ -57,8 +57,9 @@ started=false
 exec=0
 t0=$(date +%s)
 for m in "${ms[@]}"; do
-  [[ $m == ev ]] && c=ev || c=tl
-  $CMB_HOME/riak $c
+  [[ $m == ev1 ]] || [[ $m == ev2 ]] && c=ev || c=tl
+  [[ $m == ev2 ]] && w=2 || w=1
+  $CMB_HOME/riak $c $w
 
   for l in "${ls[@]}"; do
     for p in "${ps[@]}"; do

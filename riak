@@ -1,6 +1,6 @@
 #!/bin/bash
 
-in=(ev\|tl)
+in=(ev\|tl w)
 [[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
 set -ue
@@ -8,6 +8,7 @@ source $CMB_HOME/env.sh
 cd $TMP_DIR
 
 consistency=$1
+w=$2
 
 case $consistency in
   ev) get_fsm=riak_kv_get_fsm
@@ -25,6 +26,7 @@ for dc in {1..2}; do
 
     sed "s/\${node_name}/$riak_name/" < $CMB_HOME/vm.args > vm.args.$n
     sed "s/\${dc}/$dc/
+s/\${w}/$w/
 s/\${ip}/$ip/
 s/\${get_fsm}/$get_fsm/
 s/\${put_fsm}/$put_fsm/
@@ -41,5 +43,6 @@ head -1 riak_nodes > riak_nodes_1
 sed '1 d' < riak_nodes > riak_nodes_n
 
 update_conf_info consistency $consistency
+update_conf_info w $w
 
 exit 0
