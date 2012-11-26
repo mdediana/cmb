@@ -10,16 +10,16 @@ source $CMB_HOME/env.sh
 # 9:1 - 91% reads / 9% writes (writes = 10% reads)
 # 1:0 - 100% reads (writes = 0% reads)
 
-ms=(ev any lat)
-#ms=(any)
-ls=(0.5 0.9)
-#ls=(0.5)
-ps=(uni par)
-#ps=(par)
-rs=(0:1 1:0 9:1 1:1 3:1)
-#rs=(1:1)
-ds=(0 25 50 75 100 125 150)
-#ds=(50)
+#ms=(ev any lat)
+ms=(any)
+#ls=(0.5 0.9)
+ls=(0.5)
+#ps=(uni par)
+ps=(par)
+#rs=(0:1 1:0 9:1 1:1 3:1)
+rs=(1:1)
+#ds=(0 25 50 75 100 125 150)
+ds=(50)
 
 args=($($CMB_HOME/fix-res | tail -1 | sed -n 's/Last run: \(.*\)/\1/p'))
 args=${args:-''}
@@ -48,7 +48,7 @@ est_time() {
   echo $et
 }
 
-$CMB_HOME/srvs $RIAK $BENCH
+$CMB_HOME/srvs $RIAKS $BENCHS
 
 ((rem=${#ms[@]} * ${#ls[@]} * ${#ps[@]} * ${#rs[@]} * ${#ds[@]}))
 echo "Number of tests: $rem"
