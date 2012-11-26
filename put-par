@@ -1,15 +1,23 @@
 #!/bin/bash
 
-host=$1
-t1=$2
-t2=$3
+in=(host_1 host_2 sleep_1 sleep_2 runs)
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+
+set -ue
+source $CMB_HOME/env.sh
+
+host_1=$1
+host_2=$2
+t1=$3
+t2=$4
+runs=$5
 
 k1=9
 
-for i in {1..10}; do
+for i in $(seq 1 $runs); do
   echo -- >&2
+  /usr/bin/time -f %E curl -X PUT -d "$(date)" -H "Content-Type: text/plain" http://$host_1:8098/riak/test/$k1 &
   sleep $t1
-  /usr/bin/time -f %E curl -X PUT -d "$(date)" -H "Content-Type: text/plain" http://$host:8098/riak/test/$k1?req_version=any
+  /usr/bin/time -f %E curl -X PUT -d "$(date)" -H "Content-Type: text/plain" http://$host_2:8098/riak/test/$k1 &
   sleep $t2
-  /usr/bin/time -f %E curl -X PUT -d "$(date)" -H "Content-Type: text/plain" http://$host:8098/riak/test/$k1?req_version=any
-done
+done; wait

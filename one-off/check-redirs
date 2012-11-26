@@ -1,0 +1,6 @@
+#!/bin/bash
+
+source $CMB_HOME/env.sh
+
+riak_stats coord_redirs
+riak_stats wrong_master
