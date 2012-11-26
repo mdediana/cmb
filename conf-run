@@ -18,7 +18,7 @@ case $option in
       dur=$5;;
   -r) conf_file=bench.config
       rw_ratio=$5
-      dur=$RUN_DURATION
+      dur=$TEST_DURATION
 esac
 
 [[ $mode == lat ]] && tl_mode=latest || tl_mode=any  # any for ev also
