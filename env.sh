@@ -8,8 +8,8 @@ export RIAK_DATA_DIR=/tmp/data	# /tmp is mounted on sda5, bigger than sda3
 export RIAK_LOG_DIR=$RIAK_HOME/log
 export BENCH_HOME=/opt/basho_bench
 export ENV_FILE=$IMG_HOME/squeeze-x64-riak.env
-#export LOG_LEVEL=error
-export LOG_LEVEL=info
+export LOG_LEVEL=error
+#export LOG_LEVEL=info
 export TOTAL_KEYS=2000000
 export RUN_DURATION=3
 declare -Ax WARMUP_DURATION=(
@@ -58,7 +58,7 @@ rm -fr tests/*
 
 riak_stats() {
   local stat=$1
-  agg srv_nodes "$RIAK_BIN_DIR/riak-admin status | grep $stat | cut -d: -f2"
+  agg $TMP_DIR/srv_nodes "$RIAK_BIN_DIR/riak-admin status | grep $stat | cut -d: -f2"
 }
 
 create_all_nodes() {
