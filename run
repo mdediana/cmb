@@ -24,7 +24,9 @@ tx_rx() {
 metrics() {
   local i=$1
   rr[$i]=$(riak_stats read_repairs_total)
+  redirs[$i]=$(riak_stats coord_redirs_total)
   mig[$i]=$(riak_stats master_migrations_total)
+  wr_master[$i]=$(riak_stats wrong_master_total)
   cache[$i]=$(disk_cache)
   tx_srv[$i]=$(tx_rx srv_nodes TX)
   rx_srv[$i]=$(tx_rx srv_nodes RX)
@@ -44,7 +46,9 @@ for_all_p srv_nodes "rsync -azq root@\$n:$RIAK_LOG_DIR $cur_dir/srv-\$n"
 
 metrics 1
 echo "conflicts=$((rr[1]-rr[0]))
+redirs=$((redirs[1]-redirs[0]))
 migrations=$((mig[1]-mig[0]))
+wrong_master=$((wr_master[1]-wr_master[0]))
 disk_cache=$((cache[1]-cache[0]))
 tx_srv=$((tx_srv[1]-tx_srv[0]))
 rx_srv=$((rx_srv[1]-rx_srv[0]))
