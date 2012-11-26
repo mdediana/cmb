@@ -8,7 +8,7 @@ source $CMB_HOME/env.sh
 cd $TMP_DIR
 
 option=$1
-mode=$2
+[[ $2 == lat ]] && tl_mode=lat || tl_mode=any # any for the rest
 locality=$3
 pop=$4
 
@@ -20,8 +20,6 @@ case $option in
       rw_ratio=$5
       dur=$TEST_DURATION
 esac
-
-[[ $mode == lat ]] && tl_mode=latest || tl_mode=any  # any for ev also
 
 loc[1]=$(printf "%1.2f" $locality)
 loc[2]=$(printf "%1.2f" $(bc <<< "1-$locality"))
@@ -50,10 +48,11 @@ for dc in {1..2}; do
 
     # we have seen some update_existing errors for the last key,
     # so we stop one key before just to avoid confusion
+    [[ $tl_mode == lat ]] && tm=latest || tm=$tl_mode
     sed "s/\${ips}/$ips_str/
 s/\${duration}/$dur/
 s/\${num_keys}/$((TOTAL_KEYS-1))/
-s/\${tl_mode}/$tl_mode/
+s/\${tl_mode}/$tm/
 s/\${locality}/${loc[dc]}/
 s/\${keygen}/$keygen/
 s/\${operations}/$ops/" $CMB_HOME/bench.config > $conf_file.$cli

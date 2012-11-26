@@ -18,7 +18,6 @@ for d in $(ls -r $RES_DIR); do
       v=$(get_prop $d/conf_info $k)
       if [[ $k == tl_mode ]]; then
         [[ $(get_prop $d/conf_info consistency) == ev ]] && v=ev
-        [[ $v == latest ]] && v=lat
       fi
       params=$params" "$v
     done
