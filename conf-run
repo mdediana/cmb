@@ -1,6 +1,6 @@
 #!/bin/bash
 
-in=(-w\|-r ev\|any\|lat locality popularity duration\|rw_ratio)
+in=(-w\|-r ev1\|ev2\|any\|lat locality popularity duration\|rw_ratio)
 [[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
 set -ue
@@ -8,7 +8,8 @@ source $CMB_HOME/env.sh
 cd $TMP_DIR
 
 option=$1
-[[ $2 == lat ]] && tl_mode=lat || tl_mode=any # any for the rest
+[[ $2 == ev2 ]] && w=2 || w=1
+[[ $2 == lat ]] && tl_mode=lat || tl_mode=any
 locality=$3
 pop=$4
 
@@ -49,13 +50,14 @@ for dc in {1..2}; do
     # we have seen some update_existing errors for the last key,
     # so we stop one key before just to avoid confusion
     [[ $tl_mode == lat ]] && tm=latest || tm=$tl_mode
-    sed "s/\${ips}/$ips_str/
-s/\${duration}/$dur/
-s/\${num_keys}/$((TOTAL_KEYS-1))/
-s/\${tl_mode}/$tm/
+    sed "s/\${duration}/$dur/
 s/\${locality}/${loc[dc]}/
 s/\${keygen}/$keygen/
-s/\${operations}/$ops/" $CMB_HOME/bench.config > $conf_file.$cli
+s/\${num_keys}/$((TOTAL_KEYS-1))/
+s/\${operations}/$ops/
+s/\${ips}/$ips_str/
+s/\${tl_mode}/$tm/
+s/\${w}/$w/" $CMB_HOME/bench.config > $conf_file.$cli
 
     scp -q $conf_file.$cli root@$cli:$BENCH_HOME/$conf_file &
   done
