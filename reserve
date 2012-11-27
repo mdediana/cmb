@@ -1,14 +1,14 @@
 #!/bin/bash
 
-in=(cluster walltime nodes +after_min\|when)
+in=(cluster nodes walltime +after_min\|when)
 [[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
 set -ue
 source $CMB_HOME/env.sh
 
 cluster=$1
-walltime=$2
-nodes=$3
+nodes=$2
+walltime=$3
 [[ $4 == +* ]] && when=$(date -d "$3 min" +"%Y-%m-%d %H:%M:%S") || when=$4
 
 rm blacklist.conf; touch blacklist.conf

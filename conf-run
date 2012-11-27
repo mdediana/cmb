@@ -63,6 +63,7 @@ s/\${w}/$w/" $CMB_HOME/bench.config > $conf_file.$cli
   done
 done; wait
 
+update_conf_info w $w
 update_conf_info tl_mode $tl_mode
 update_conf_info popularity $pop
 update_conf_info locality $locality
