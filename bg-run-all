@@ -6,6 +6,6 @@ option=${1:--s}
 
 case $option in
   -s) ps -C run-all;;
-  -k) pid=$(ps -C run-all -o pid=)
-      kill -9 $pid
+  -k) pgid=$(ps -C run-all -o pgid= | tr -d ' ')
+      [[ -n $pgid ]] && kill -TERM -$pgid
 esac 

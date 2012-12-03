@@ -6,7 +6,7 @@ source $CMB_HOME/env.sh
 [[ ! -e $RES_DIR ]] && echo "No results dir" && exit 0
 
 cd $RES_DIR
-for d in $(ls -r $RES_DIR); do
+for d in $(find $RES_DIR/* -maxdepth 0 -type d); do
   if [[ ! -e $d/finished ]]; then
     echo "Removing unfinished: $d"
     rm -r $d
