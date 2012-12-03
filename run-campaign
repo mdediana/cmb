@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -ue
+source $CMB_HOME/env.sh
+
+log=$RES_DIR/campaign.$(date +%Y%m%d_%H%M%S).log
+echo Log file: $log
+
+$CMB_HOME/fix-res &> $log
+nohup $CMB_HOME/run-all &>> $log &
+
+tail -f $log

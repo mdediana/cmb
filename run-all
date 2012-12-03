@@ -3,13 +3,6 @@
 set -ue
 source $CMB_HOME/env.sh
 
-# rw_ratios
-# 0:1 - 50% reads / 50% writes (writes = 100% reads)
-# 1:1 - 66% reads / 33% writes (writes = 50% reads)
-# 3:1 - 80% reads / 20% writes (writes = 25% reads)
-# 9:1 - 91% reads / 9% writes (writes = 10% reads)
-# 1:0 - 100% reads (writes = 0% reads)
-
 #ms=(ev1 ev2 any lat)
 ms=(ev1 lat)
 ls=(0.5 0.9)
@@ -21,21 +14,7 @@ rs=(1:1 9:1)
 #ds=(0 25 50 75 100 125 150)
 ds=(50 150)
 
-args=($($CMB_HOME/fix-res | tail -1 | sed -n 's/Last run: \(.*\)/\1/p'))
-args=${args:-''}
-[[ -n "$args" ]] && skip=true || skip=false
-
-m0=${args[0]:-${ms[0]}}
-l0=${args[1]:-${ls[0]}}
-p0=${args[2]:-${ps[0]}}
-r0=${args[3]:-${rs[0]}}
-d0=${args[4]:-${ds[0]}}
-
-match_last() {
-  [[ $m == $m0 ]] && [[ $l == $l0 ]] && [[ $p == $p0 ]] && \
-  [[ $r == $r0 ]] && [[ $d == $d0 ]] && \
-  echo true || echo false
-}
+done_log=$RES_DIR/exp_done.log
 
 est_time() {
   local et=-
@@ -53,46 +32,53 @@ $CMB_HOME/srvs $RIAKS $BENCHS
 ((rem=${#ms[@]} * ${#ls[@]} * ${#ps[@]} * ${#rs[@]} * ${#ds[@]}))
 echo "Number of tests: $rem"
 
+prev=('' '' '' '' '' '')
 started=false
 exec=0
 t0=$(date +%s)
 for m in "${ms[@]}"; do
-  [[ $m == ev1 ]] || [[ $m == ev2 ]] && c=ev || c=tl
-  $CMB_HOME/riak $c
-
   for l in "${ls[@]}"; do
     for p in "${ps[@]}"; do
-      if [[ $skip == false ]] || \
-         ([[ $m == $m0 ]] && [[ $l == $l0 ]] && [[ $p == $p0 ]]); then
-        $CMB_HOME/start
-        $CMB_HOME/load $c $l $p
-        started=true
-      fi
-
       for r in "${rs[@]}"; do
         for d in "${ds[@]}"; do
-          echo "- $m $l $p $r $d ($rem / $(est_time))"
-          ((rem--))
-          if [[ $skip == true ]]; then
-            [[ $(match_last) == true ]] && skip=false
-            echo Skipped
-          else
-            sleep 15
-            $CMB_HOME/delay $d
-            for i in $(seq 1 $TESTS); do
-              $CMB_HOME/run $m $l $p $r
+          for i in $(seq 1 $TESTS); do
+            cur=($m $l $p $r $d $i)
+            ((rem--))
+
+            cur_str=$(echo ${cur[@]})
+            if [[ -e $done_log ]] && \
+               [[ -n $(grep "$cur_str" $done_log) ]]; then
+              echo Skipping $cur_str
+              prev=(${cur[@]})
+              continue
+            fi
+
+            [[ $m == ev1 ]] || [[ $m == ev2 ]] && c=ev || c=tl
+            # if mode changed or is tl and loc / pop changed or not started yet
+            if [[ $m != ${prev[0]} ]] || \
+               [[ $c == tl && \
+                "${cur[1]}${cur[2]}" != "${prev[1]}${prev[2]}" ]] || \
+               [[ $started == false ]]; then
+              echo "Starting / loading"
+              $CMB_HOME/delay 0
+              $CMB_HOME/riak $c
+              $CMB_HOME/start	# includes stop
+              $CMB_HOME/load $c $l $p
+              started=true
               sleep 15
-            done
+            fi
+
+            echo "- ${cur[@]} (remaining: $rem / $(est_time))"
+            $CMB_HOME/delay $d
+            $CMB_HOME/run $m $l $p $r
+            sleep 15
+
             ((exec++)) || true # when exec == 0, exit status == 1
-          fi
+            echo ${cur[@]} >> $done_log
+            prev=(${cur[@]})
+          done
         done
       done
-
-      if [[ $started == true ]]; then
-        $CMB_HOME/delay 0
-        $CMB_HOME/stop
-        started=false
-      fi
     done
   done
 done
