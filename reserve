@@ -9,7 +9,8 @@ source $CMB_HOME/env.sh
 cluster=$1
 nodes=$2
 walltime=$3
-[[ $4 == +* ]] && when=$(date -d "$3 min" +"%Y-%m-%d %H:%M:%S") || when=$4
+when=$4
+[[ $when == +* ]] && when=$(date -d "$when min" +"%Y-%m-%d %H:%M:%S")
 
 rm blacklist.conf; touch blacklist.conf
 
