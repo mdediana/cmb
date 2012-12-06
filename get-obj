@@ -1,15 +1,14 @@
 #!/bin/bash
 
-in=(ip [req_version])
-[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+in=(host key [req_version])
+[[ $# -lt 2 ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
-req_version=${2:-latest}
+host=$1
+key=$2
+req_version=${3:-latest}
 
 set -ue
 source $CMB_HOME/env.sh
 cd $TMP_DIR
 
-ip=$(to_ip $1)
-
-key=$(cat obj_keys | tr -d '\r')
-curl -v http://$ip:8098$key?req_version=$req_version 2>&1 | sed 's/< X-Riak-Vclock: \(.*\)/\1/w obj_vclocks'
+curl -v http://$host:8098/riak/test/$key?req_version=$req_version 2>&1
