@@ -8,12 +8,14 @@ export RIAK_DATA_DIR=/tmp/data	# /tmp is mounted on sda5, bigger than sda3
 export RIAK_LOG_DIR=$RIAK_HOME/log
 export BENCH_HOME=/opt/basho_bench
 export ENV_FILE=$IMG_HOME/squeeze-x64-riak.env
+export BLACKLIST=$CMB_HOME/blacklist.conf
 export RIAKS=8
 export BENCHS=2
 export TESTS=1
 export LOG_LEVEL=error
 #export LOG_LEVEL=info
-export TOTAL_KEYS=2000000
+#export TOTAL_KEYS=2000000
+export TOTAL_KEYS=200000
 export TEST_DURATION=3
 declare -Ax WARMUP_DURATION=(
   ["0.5_uni"]=20
@@ -67,7 +69,7 @@ riak_stats() {
 create_all_nodes() {
   [[ -z $(jobid) ]] && echo "No running job" && return 1
   oarstat -u -f -j $(jobid) | sed -n 's/ *assigned_hostnames = \(.*\)/\1/p' | tr '+' '\n' > $TMP_DIR/all_nodes
-  for n in $(cat $CMB_HOME/blacklist.conf); do
+  for n in $(cat $BLACKLIST); do
     sed -i "/$n/ d" $TMP_DIR/all_nodes
   done
   [[ -z $(cat $TMP_DIR/all_nodes) ]] && echo "No available nodes" && return 1

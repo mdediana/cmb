@@ -17,7 +17,10 @@ echo "Deploying nodes"
 kadeploy3 -a $ENV_FILE -f all_nodes -k > $outfile
 [[ $? -ne 0 ]] && echo "Deployment failed" && exit 1
 
-if [[ -n $(egrep "(ERROR|Nodes not correctly deployed|Cannot run the deployment)" $outfile || true) ]]; then
+sed -n '/Nodes not correctly deployed/,$ s/\(.grid5000.fr*\).*/\1/p' kadeploy.out > $BLACKLIST
+[[ -s $BLACKLIST ]] && echo "$(wc -l < $BLACKLIST) nodes not correctly deployed"
+
+if [[ -n $(egrep "(ERROR|Cannot run the deployment)" $outfile || true) ]]; then
   echo -e "Deployment failed.\n $(cat $outfile)"
   exit 1
 fi

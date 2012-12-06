@@ -12,8 +12,6 @@ walltime=$3
 when=$4
 [[ $when == +* ]] && when=$(date -d "$when min" +"%Y-%m-%d %H:%M:%S")
 
-rm blacklist.conf; touch blacklist.conf
-
 oarsub -t deploy -t allow_classic_ssh -l slash_22=2+{"cluster='$cluster'"}nodes=$nodes,walltime=$walltime -r "$when"
 echo "Crontab time: $(TZ="America/Sao_Paulo" date -d "$when GMT+2" +"%M %H %d %m *")"
 
