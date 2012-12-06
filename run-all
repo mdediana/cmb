@@ -27,7 +27,7 @@ est_time() {
   echo $et
 }
 
-$CMB_HOME/srvs $RIAKS $BENCHS
+$CMB_HOME/srvs
 
 ((rem=${#ms[@]} * ${#ls[@]} * ${#ps[@]} * ${#rs[@]} * ${#ds[@]}))
 echo "Number of tests: $rem"
