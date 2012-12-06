@@ -37,20 +37,21 @@ ops=""
 [[ $gets != 0 ]] && [[ $upds != 0 ]] && ops=$ops,
 [[ $upds != 0 ]] && ops=$ops"{update_existing, $upds}"
 
-clis=$(cat bench_nodes | wc -l)
-((clis_dc=clis/2))
-  
-ips_dc=$(cat ips-1 | wc -l)  # both dcs have the same ip count
-((ips_cli=ips_dc/clis_dc))
-for dc in {1..2}; do
-  for ((c=1, i=1; c<=clis_dc; c++, i+=ips_cli)); do
-    ips_str=$(sed -n "$i,$((i+ips_cli-1)) s/\(.*\)/\"\1\"/p" ips-$dc | paste -d, -s)
-    cli=$(sed -n "$c p" bench_nodes-$dc)
+# alternate dc1 and dc 2 ips in case of a single client
+[[ $BENCHS -eq 1 ]] && paste -d'\n' ips-1 ips-2 > ips || cat ips-1 ips-2 > ips
+((ips_cli=RIAKS/BENCHS))
+((clis_dc=BENCHS/2)) || true
+[[ $clis_dc -eq 0 ]] && clis_dc=1
+# prepare all clients for dc1 then for dc2
+for ((c=1, i=1; c<=BENCHS; c++, i+=ips_cli)); do
+  ips_str=$(sed -n "$i,$((i+ips_cli-1)) s/\(.*\)/\"\1\"/p" ips | paste -d, -s)
+  cli=$(sed -n "$c p" bench_nodes)
+  ((dc=(c-1)/clis_dc+1))
 
-    # we have seen some update_existing errors for the last key,
-    # so we stop one key before just to avoid confusion
-    [[ $tl_mode == lat ]] && tm=latest || tm=$tl_mode
-    sed "s/\${duration}/$dur/
+  # we have seen some update_existing errors for the last key,
+  # so we stop one key before just to avoid confusion
+  [[ $tl_mode == lat ]] && tm=latest || tm=$tl_mode
+  sed "s/\${duration}/$dur/
 s/\${locality}/${loc[dc]}/
 s/\${keygen}/$keygen/
 s/\${num_keys}/$((TOTAL_KEYS-1))/
@@ -59,8 +60,7 @@ s/\${ips}/$ips_str/
 s/\${tl_mode}/$tm/
 s/\${w}/$w/" $CMB_HOME/bench.config > $conf_file.$cli
 
-    scp -q $conf_file.$cli root@$cli:$BENCH_HOME/$conf_file &
-  done
+  scp -q $conf_file.$cli root@$cli:$BENCH_HOME/$conf_file &
 done; wait
 
 update_conf_info w $w
