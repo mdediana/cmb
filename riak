@@ -24,7 +24,8 @@ for dc in {1..2}; do
     ip=$(to_ip $n)
 
     sed "s/\${node_name}/$riak_name/" < $CMB_HOME/vm.args > vm.args.$n
-    sed "s/\${ip}/$ip/
+    sed "s/\${mig_thold}/$MIG_THOLD/
+s/\${ip}/$ip/
 s/\${get_fsm}/$get_fsm/
 s/\${put_fsm}/$put_fsm/
 s/\${log_level}/$LOG_LEVEL/" < $CMB_HOME/app.config > app.config.$n

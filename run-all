@@ -59,18 +59,19 @@ for m in "${ms[@]}"; do
                [[ $c == tl && \
                 "${cur[1]}${cur[2]}" != "${prev[1]}${prev[2]}" ]] || \
                [[ $started == false ]]; then
-              echo "Starting / loading"
+              echo "Starting / loading / warming up"
               $CMB_HOME/delay 0
               $CMB_HOME/riak $c
               $CMB_HOME/start	# includes stop
-              $CMB_HOME/load $c $l $p
+              $CMB_HOME/conf $m $l $p $r
+              $CMB_HOME/load
               started=true
               sleep 15
             fi
 
             echo "- ${cur[@]} (remaining: $rem / $(est_time))"
             $CMB_HOME/delay $d
-            $CMB_HOME/run $m $l $p $r
+            $CMB_HOME/run
             sleep 15
 
             ((exec++)) || true # when exec == 0, exit status == 1

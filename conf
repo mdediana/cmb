@@ -1,26 +1,17 @@
 #!/bin/bash
 
-in=(-w\|-r ev1\|ev2\|any\|lat locality popularity duration\|rw_ratio)
+in=(ev1\|ev2\|any\|lat locality popularity rw_ratio)
 [[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
 set -ue
 source $CMB_HOME/env.sh
 cd $TMP_DIR
 
-option=$1
-[[ $2 == ev2 ]] && w=2 || w=1
-[[ $2 == lat ]] && tl_mode=lat || tl_mode=any
-locality=$3
-pop=$4
-
-case $option in
-  -w) conf_file=bench-warmup.config
-      rw_ratio="0:1"
-      dur=$5;;
-  -r) conf_file=bench.config
-      rw_ratio=$5
-      dur=$TEST_DURATION
-esac
+[[ $1 == ev2 ]] && w=2 || w=1
+[[ $1 == lat ]] && tl_mode=lat || tl_mode=any
+locality=$2
+pop=$3
+rw_ratio=$4
 
 loc[1]=$(printf "%1.2f" $locality)
 loc[2]=$(printf "%1.2f" $(bc <<< "1-$locality"))
@@ -42,25 +33,48 @@ ops=""
 ((ips_cli=RIAKS/BENCHS))
 ((clis_dc=BENCHS/2)) || true
 [[ $clis_dc -eq 0 ]] && clis_dc=1
+((keys_dc=TOTAL_KEYS/2))
+((last_key=TOTAL_KEYS-1)) # keys start at 0
+
 # prepare all clients for dc1 then for dc2
 for ((c=1, i=1; c<=BENCHS; c++, i+=ips_cli)); do
   ips_str=$(sed -n "$i,$((i+ips_cli-1)) s/\(.*\)/\"\1\"/p" ips | paste -d, -s)
   cli=$(sed -n "$c p" bench_nodes)
   ((dc=(c-1)/clis_dc+1))
 
-  # we have seen some update_existing errors for the last key,
-  # so we stop one key before just to avoid confusion
   [[ $tl_mode == lat ]] && tm=latest || tm=$tl_mode
-  sed "s/\${duration}/$dur/
+  sed "s/\${duration}/$TEST_DURATION/
 s/\${locality}/${loc[dc]}/
 s/\${keygen}/$keygen/
-s/\${num_keys}/$((TOTAL_KEYS-1))/
+s/\${num_keys}/$last_key/
 s/\${operations}/$ops/
 s/\${ips}/$ips_str/
 s/\${tl_mode}/$tm/
-s/\${w}/$w/" $CMB_HOME/bench.config > $conf_file.$cli
+s/\${w}/$w/" $CMB_HOME/bench.config > bench.config.$cli
 
-  scp -q $conf_file.$cli root@$cli:$BENCH_HOME/$conf_file &
+  scp -q bench.config.$cli root@$cli:$BENCH_HOME/bench.config &
+done; wait
+
+head -1 bench_nodes-1 > load_nodes
+head -1 bench_nodes-2 >> load_nodes
+
+for dc in {1..2}; do
+  [[ $dc -eq 1 ]] && start_key=0 || start_key=$keys_dc
+  ips_str=$(sed -n "s/\(.*\)/\"\1\"/p" ips-$dc | paste -d, -s)
+  cli=$(sed -n "$dc p" load_nodes)
+
+  sed "s/\${ips}/$ips_str/
+s/\${start_key}/$start_key/
+s/\${num_keys}/$keys_dc/" $CMB_HOME/bench-load.config > bench-load.config.$cli
+
+  sed "s/\${locality}/${loc[dc]}/
+s/\${keygen}/$keygen/
+s/\${num_keys}/$last_key/
+s/\${num_reqs}/$keys_dc/
+s/\${ips}/$ips_str/" $CMB_HOME/bench-warmup.config > bench-warmup.config.$cli
+
+  scp -q bench-load.config.$cli root@$cli:$BENCH_HOME/bench-load.config &
+  scp -q bench-warmup.config.$cli root@$cli:$BENCH_HOME/bench-warmup.config &
 done; wait
 
 update_conf_info w $w

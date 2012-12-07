@@ -16,12 +16,8 @@ export LOG_LEVEL=error
 #export LOG_LEVEL=info
 #export TOTAL_KEYS=2000000
 export TOTAL_KEYS=200000
+export MIG_THOLD=3
 export TEST_DURATION=3
-declare -Ax WARMUP_DURATION=(
-  ["0.5_uni"]=20
-  ["0.5_par"]=5
-  ["0.9_uni"]=35
-  ["0.9_par"]=20)
 
 # return all running jobids (there should be only one)
 jobid() {
@@ -69,7 +65,7 @@ riak_stats() {
 create_all_nodes() {
   [[ -z $(jobid) ]] && echo "No running job" && return 1
   oarstat -u -f -j $(jobid) | sed -n 's/ *assigned_hostnames = \(.*\)/\1/p' | tr '+' '\n' > $TMP_DIR/all_nodes
-  for n in $(cat $BLACKLIST); do
+  [[ -e $BLACKLIST ]] && for n in $(cat $BLACKLIST); do
     sed -i "/$n/ d" $TMP_DIR/all_nodes
   done
   [[ -z $(cat $TMP_DIR/all_nodes) ]] && echo "No available nodes" && return 1

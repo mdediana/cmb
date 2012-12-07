@@ -1,0 +1,17 @@
+#!/bin/bash
+
+$CMB_HOME/start
+$CMB_HOME/conf lat 0.5 uni 1:1
+$CMB_HOME/load
+
+$CMB_HOME/start
+$CMB_HOME/conf lat 0.5 par 1:1
+$CMB_HOME/load
+
+$CMB_HOME/start
+$CMB_HOME/conf lat 0.9 uni 1:1
+$CMB_HOME/load
+
+$CMB_HOME/start
+$CMB_HOME/conf lat 0.9 par 1:1
+$CMB_HOME/load

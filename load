@@ -1,7 +1,6 @@
 #!/bin/bash
 
-in=(consistency locality popularity)
-[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+option=${1:-"-lw"}
 
 set -ue
 source $CMB_HOME/env.sh
@@ -16,29 +15,26 @@ check_errors() {
   echo # must echo/return something
 }
 
-consist=$1
-loc=$2
-pop=$3
-
-$CMB_HOME/conf-load
-
-echo Loading
-for_all_p load_nodes "run_basho_bench \$n bench-load.config"
-check_errors
-echo "Loading finished"
-
-if [[ $consist == ev ]]; then
-  echo "Skipping warm-up"
-else
-  dur=${WARMUP_DURATION["${loc}_$pop"]} 
-  $CMB_HOME/conf-run -w lat $loc $pop $dur
-
-  echo "Warming up"
-  m0=$(riak_stats master_migrations_total)
-  for_all_p bench_nodes "run_basho_bench \$n bench-warmup.config"
+if [[ $option == "-l" ]] || [[ $option == "-lw" ]]; then
+  echo Loading
+  for_all_p load_nodes "run_basho_bench \$n bench-load.config"
   check_errors
-  m1=$(riak_stats master_migrations_total)
-  echo "Warm-up finished ($((m1-m0)) migrations | $dur min)"
+  echo "Loading finished"
+fi
+
+if [[ $option == "-w" ]] || [[ $option == "-lw" ]]; then
+  if [[ $(get_prop conf_info consistency) == ev ]]; then
+    echo "Skipping warm-up"
+  else
+    echo "Warming up"
+    m0=$(riak_stats master_migrations_total)
+    for i in $(seq 1 $((MIG_THOLD+1))); do
+      for_all_p bench_nodes "run_basho_bench \$n bench-warmup.config"
+      check_errors
+    done
+    m1=$(riak_stats master_migrations_total)
+    echo "Warm-up finished ($((m1-m0)) migrations)"
+  fi
 fi
 
 exit 0
