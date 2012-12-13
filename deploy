@@ -3,27 +3,30 @@
 set -ue
 source $CMB_HOME/env.sh
 cd $TMP_DIR
-rm -fr $TMP_DIR/*; rm -f $BLACKLIST
+rm -fr $TMP_DIR/*
 
 outfile=$TMP_DIR/kadeploy.out
 
 echo -n Waiting for job to be ready
 while [[ -z $(jobid) ]]; do sleep 10; echo -n .; done && echo
 
-create_all_nodes
+oarstat -u -f -j $(jobid) | \
+    sed -n 's/ *assigned_hostnames = \(.*\)/\1/p' | tr '+' '\n' > reserv_nodes
 
 echo "Deploying nodes"
 #kadeploy3 -f all --multi-server -a $ENV_URL/$ENV_FILE -k $ENV_URL/authorized_keys > $outfile
-kadeploy3 -a $ENV_FILE -f all_nodes -k > $outfile
+kadeploy3 -a $ENV_FILE -f reserv_nodes -k > $outfile
 [[ $? -ne 0 ]] && echo "Deployment failed" && exit 1
 
 # Sometimes kadeploy report incorrectly deployed nodes as correct in Sophia
 echo Testing nodes
+touch blacklist
 set +e
-for_all_p all_nodes "ssh root@\$n \"echo\" || echo \$n >> \$BLACKLIST"
+for_all_p reserv_nodes \
+    "ssh root@\$n \"echo > \\dev\\null  \" || echo \$n >> blacklist"
 set -e
-[[ -s $BLACKLIST ]] && \
-    echo "$(wc -l < $BLACKLIST) nodes not correctly deployed"
+echo "Nodes not correctly deployed: $(wc -l < blacklist)"
+grep -vf blacklist reserv_nodes > all_nodes
 
 if [[ -n $(egrep "(ERROR|Cannot run the deployment)" $outfile || true) ]]; then
   echo -e "Deployment failed.\n $(cat $outfile)"

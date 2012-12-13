@@ -3,9 +3,7 @@
 set -ue
 source $CMB_HOME/env.sh
 cd $TMP_DIR
-rm -fr $TMP_DIR/*
 
-create_all_nodes
 head -$RIAKS all_nodes > srv_nodes
 head -1 srv_nodes > srv_nodes_1
 sed '1 d' < srv_nodes > srv_nodes_n
@@ -19,6 +17,8 @@ tail -$srvs_dc srv_nodes > dc-2
 ((clis_dc=BENCHS/2)) || true	# may be 0
 head -$clis_dc bench_nodes > bench_nodes-1
 tail -$clis_dc bench_nodes > bench_nodes-2
+
+cat srv_nodes bench_nodes > srv_bench_nodes
 
 update_conf_info servers $RIAKS
 update_conf_info clients $BENCHS

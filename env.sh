@@ -8,7 +8,6 @@ export RIAK_DATA_DIR=/tmp/data	# /tmp is mounted on sda5, bigger than sda3
 export RIAK_LOG_DIR=$RIAK_HOME/log
 export BENCH_HOME=/opt/basho_bench
 export ENV_FILE=$IMG_HOME/squeeze-x64-riak.env
-export BLACKLIST=$CMB_HOME/blacklist.conf
 export RIAKS=8
 export BENCHS=2
 export TESTS=1
@@ -61,16 +60,6 @@ rm -fr tests/*
 riak_stats() {
   local stat=$1
   agg $TMP_DIR/srv_nodes "$RIAK_BIN_DIR/riak-admin status | grep $stat | cut -d: -f2"
-}
-
-create_all_nodes() {
-  [[ -z $(jobid) ]] && echo "No running job" && return 1
-  oarstat -u -f -j $(jobid) | sed -n 's/ *assigned_hostnames = \(.*\)/\1/p' | tr '+' '\n' > $TMP_DIR/all_nodes
-  [[ -e $BLACKLIST ]] && for n in $(cat $BLACKLIST); do
-    sed -i "/$n/ d" $TMP_DIR/all_nodes
-  done
-  [[ -z $(cat $TMP_DIR/all_nodes) ]] && echo "No available nodes" && return 1
-  return 0
 }
 
 update_conf_info() {
