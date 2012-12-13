@@ -6,6 +6,28 @@ cd $TMP_DIR
 
 cur_dir=$RES_DIR/$(date +%Y%m%d_%H%M%S); mkdir -p $cur_dir
 
+ping_test() {
+  local from=$1; local to=$2
+  echo -e "\nFrom: $from" >> ping_test
+  ssh root@$from "ping -qc 5 $to" >> ping_test
+}
+
+sanity_check() {
+  ssh_all_p srv_bench_nodes "cp /proc/meminfo /tmp"
+  for_all_p srv_bench_nodes "rsync -azq root@\$n:/tmp/meminfo meminfo.\$n"
+  for_all_p srv_bench_nodes "ssh root@\$n \"df\" > df_test.\$n"
+
+  # measure delay after tc
+  n1=$(head -1 dc-1)
+  n2=$(head -1 dc-2)
+  nb=$(head -1 bench_nodes)
+  rm -f ping_test
+  ping_test $n1 $n2
+  ping_test $n2 $n1
+  ping_test $nb $n1
+  ping_test $nb $n2
+}
+
 disk_cache() {
   agg srv_nodes "free -m | egrep Mem: | awk '{print \$7}'"
 }
@@ -22,6 +44,7 @@ metrics() {
   redirs[$i]=$(riak_stats coord_redirs_total)
   mig[$i]=$(riak_stats master_migrations_total)
   wr_master[$i]=$(riak_stats wrong_master_total)
+  sibl[$i]=$(riak_stats node_get_fsm_siblings)
   cache[$i]=$(disk_cache)
   tx_srv[$i]=$(tx_rx srv_nodes TX)
   rx_srv[$i]=$(tx_rx srv_nodes RX)
@@ -29,12 +52,14 @@ metrics() {
   rx_bch[$i]=$(tx_rx bench_nodes RX)
 }
 
-# drop cache
 echo Preparing 
 ssh_all_p srv_nodes "echo 3 > /proc/sys/vm/drop_caches"
+sanity_check
 metrics 0
+
 echo Running
 for_all_p bench_nodes "run_basho_bench \$n bench.config"
+
 echo Getting results
 for_all_p bench_nodes "rsync -azq root@\$n:$BENCH_HOME/tests/current/ $cur_dir/bch-\$n"
 for_all_p srv_nodes "rsync -azq root@\$n:$RIAK_LOG_DIR $cur_dir/srv-\$n"
@@ -44,6 +69,7 @@ echo "conflicts=$((rr[1]-rr[0]))
 redirs=$((redirs[1]-redirs[0]))
 migrations=$((mig[1]-mig[0]))
 wrong_master=$((wr_master[1]-wr_master[0]))
+siblings=$((sibl[1]-sibl[0]))
 disk_cache=$((cache[1]-cache[0]))
 tx_srv=$((tx_srv[1]-tx_srv[0]))
 rx_srv=$((rx_srv[1]-rx_srv[0]))
@@ -52,9 +78,9 @@ rx_bch=$((rx_bch[1]-rx_bch[0]))" > $cur_dir/metrics
 cp conf_info $cur_dir
 cp bench*.config.* $cur_dir
 cp vm.args.* app.config.* $cur_dir
+cp meminfo.* df_test.* ping_test $cur_dir
 
 echo -e "\n\nErrors:"
-# egrep exit with 1 in case of no match
 echo "Servers:"; egrep -r "\[error\]" $cur_dir/srv-* || true
 echo "errors.csv:"; cat $cur_dir/bch-*/errors.csv
 
