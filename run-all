@@ -38,6 +38,7 @@ for m in "${ms[@]}"; do
                [[ -n $(grep "$cur_str" $done_log) ]]; then
               echo Skipping $cur_str
               prev=(${cur[@]})
+              ((rem--)) || true
               continue
             else
               echo Running $cur_str

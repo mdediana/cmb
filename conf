@@ -24,7 +24,7 @@ esac
 gets=$(echo $rw_ratio | cut -d':' -f1)
 upds=$(echo $rw_ratio | cut -d':' -f2)
 ops=""
-[[ $gets != 0 ]] && ops="{get, $gets}"
+[[ $gets != 0 ]] && ops="{get_existing, $gets}"
 [[ $gets != 0 ]] && [[ $upds != 0 ]] && ops=$ops,
 [[ $upds != 0 ]] && ops=$ops"{update_existing, $upds}"
 
