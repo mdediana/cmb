@@ -3,7 +3,7 @@
 set -ue
 source $CMB_HOME/env.sh
 cd $TMP_DIR
-rm -fr $TMP_DIR/*
+rm -fr $TMP_DIR/*; rm -f $BLACKLIST
 
 outfile=$TMP_DIR/kadeploy.out
 
@@ -17,8 +17,13 @@ echo "Deploying nodes"
 kadeploy3 -a $ENV_FILE -f all_nodes -k > $outfile
 [[ $? -ne 0 ]] && echo "Deployment failed" && exit 1
 
-sed -n '/Nodes not correctly deployed/,$ s/\(.grid5000.fr*\).*/\1/p' kadeploy.out > $BLACKLIST
-[[ -s $BLACKLIST ]] && echo "$(wc -l < $BLACKLIST) nodes not correctly deployed"
+# Sometimes kadeploy report incorrectly deployed nodes as correct in Sophia
+echo Testing nodes
+set +e
+for_all_p all_nodes "ssh root@\$n \"echo\" || echo \$n >> \$BLACKLIST"
+set -e
+[[ -s $BLACKLIST ]] && \
+    echo "$(wc -l < $BLACKLIST) nodes not correctly deployed"
 
 if [[ -n $(egrep "(ERROR|Cannot run the deployment)" $outfile || true) ]]; then
   echo -e "Deployment failed.\n $(cat $outfile)"

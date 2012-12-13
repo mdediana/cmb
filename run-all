@@ -2,17 +2,7 @@
 
 set -ue
 source $CMB_HOME/env.sh
-
-#ms=(ev1 ev2 any lat)
-ms=(ev1 lat)
-ls=(0.5 0.9)
-#ls=(0.5)
-ps=(uni par)
-#ps=(par)
-#rs=(0:1 1:0 9:1 1:1 3:1)
-rs=(1:1 9:1)
-#ds=(0 25 50 75 100 125 150)
-ds=(50 150)
+source $CMB_HOME/run-all-conf	# factor variables
 
 done_log=$RES_DIR/exp_done.log
 
@@ -43,14 +33,14 @@ for m in "${ms[@]}"; do
         for d in "${ds[@]}"; do
           for i in $(seq 1 $TESTS); do
             cur=($m $l $p $r $d $i)
-            ((rem--))
-
             cur_str=$(echo ${cur[@]})
             if [[ -e $done_log ]] && \
                [[ -n $(grep "$cur_str" $done_log) ]]; then
               echo Skipping $cur_str
               prev=(${cur[@]})
               continue
+            else
+              echo Running $cur_str
             fi
 
             [[ $m == ev1 ]] || [[ $m == ev2 ]] && c=ev || c=tl
@@ -69,17 +59,24 @@ for m in "${ms[@]}"; do
               sleep 15
             fi
 
-            echo "- ${cur[@]} (remaining: $rem / $(est_time))"
             $CMB_HOME/delay $d
+            $CMB_HOME/conf $m $l $p $r
             $CMB_HOME/run
             sleep 15
 
             ((exec++)) || true # when exec == 0, exit status == 1
+            ((rem--)) || true
             echo ${cur[@]} >> $done_log
             prev=(${cur[@]})
+            echo "Remaining: $rem / $(est_time)"
           done
         done
       done
     done
   done
 done
+
+$CMB_HOME/delay 0
+$CMB_HOME/stop
+
+echo run-all finished

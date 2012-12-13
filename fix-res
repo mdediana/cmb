@@ -6,7 +6,7 @@ source $CMB_HOME/env.sh
 [[ ! -e $RES_DIR ]] && echo "No results dir" && exit 0
 
 cd $RES_DIR
-for d in $(find $RES_DIR/* -maxdepth 0 -type d); do
+for d in $(find $RES_DIR/* -maxdepth 0 -type d | sort -r); do
   if [[ ! -e $d/finished ]]; then
     echo "Removing unfinished: $d"
     rm -r $d
@@ -14,7 +14,7 @@ for d in $(find $RES_DIR/* -maxdepth 0 -type d); do
   else
     echo "Last finished: $d"
     params=""
-    for k in tl_mode locality popularity rw_ratio delay; do
+    for k in w tl_mode locality popularity rw_ratio delay; do
       v=$(get_prop $d/conf_info $k)
       if [[ $k == tl_mode ]]; then
         w=$(get_prop $d/conf_info w)

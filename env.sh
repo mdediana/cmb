@@ -17,6 +17,7 @@ export LOG_LEVEL=error
 #export TOTAL_KEYS=2000000
 export TOTAL_KEYS=200000
 export MIG_THOLD=3
+export WARMUP_STEPS=$((MIG_THOLD+2))
 export TEST_DURATION=3
 
 # return all running jobids (there should be only one)

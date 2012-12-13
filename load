@@ -28,9 +28,12 @@ if [[ $option == "-w" ]] || [[ $option == "-lw" ]]; then
   else
     echo "Warming up"
     m0=$(riak_stats master_migrations_total)
-    for i in $(seq 1 $((MIG_THOLD+1))); do
+    for i in $(seq 1 $WARMUP_STEPS); do
+      m0p=$(riak_stats master_migrations_total)
       for_all_p bench_nodes "run_basho_bench \$n bench-warmup.config"
       check_errors
+      m1p=$(riak_stats master_migrations_total)
+      echo "Warmup step $i/$WARMUP_STEPS finished ($((m1p-m0p)) migrations)"
     done
     m1=$(riak_stats master_migrations_total)
     echo "Warm-up finished ($((m1-m0)) migrations)"
