@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+for f in all_nodes srv_nodes dc-1 dc-2 bench_nodes; do
+  echo - $f
+  echo $(cat $f | cut -d'.' -f1)
+done
+
+echo - free
+pat="$(echo $(cat srv_nodes bench_nodes) | tr ' ' '|')"
+egrep -v $pat all_nodes | cut -d'.' -f1
