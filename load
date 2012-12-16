@@ -19,25 +19,33 @@ if [[ $option == "-l" ]] || [[ $option == "-lw" ]]; then
   echo Loading
   for_all_p load_nodes "run_basho_bench \$n bench-load.config"
   check_errors
-  echo "Loading finished"
+  echo Loading finished
+else
+  echo Skipping load
 fi
 
 if [[ $option == "-w" ]] || [[ $option == "-lw" ]]; then
   if [[ $(get_prop conf_info consistency) == ev ]]; then
-    echo "Skipping warm-up"
+    echo "Skipping warm-up (ev)"
   else
     echo "Warming up"
+
+    loc=$(get_prop conf_info locality)
+    steps=${WARMUP_STEPS[$loc]}
+
     m0=$(riak_stats master_migrations_total)
-    for i in $(seq 1 $WARMUP_STEPS); do
-      m0p=$(riak_stats master_migrations_total)
+    for i in $(seq 1 $steps); do
+      m0s=$(riak_stats master_migrations_total)
       for_all_p bench_nodes "run_basho_bench \$n bench-warmup.config"
       check_errors
-      m1p=$(riak_stats master_migrations_total)
-      echo "Warmup step $i/$WARMUP_STEPS finished ($((m1p-m0p)) migrations)"
+      m1s=$(riak_stats master_migrations_total)
+      echo "Warm-up step $i/$steps finished ($((m1s-m0s)) migrations)"
     done
     m1=$(riak_stats master_migrations_total)
     echo "Warm-up finished ($((m1-m0)) migrations)"
   fi
+else
+  echo Skipping warm-up
 fi
 
 exit 0

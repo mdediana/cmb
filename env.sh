@@ -13,11 +13,13 @@ export BENCHS=2
 export TESTS=1
 export LOG_LEVEL=error
 #export LOG_LEVEL=info
-#export TOTAL_KEYS=2000000
-export TOTAL_KEYS=200000
+#export TOTAL_KEYS=1000000
+export TOTAL_KEYS=100000
 export MIG_THOLD=3
-export WARMUP_STEPS=$((MIG_THOLD+2))
 export TEST_DURATION=3
+declare -Ax WARMUP_STEPS=(
+  ["0.5"]=3
+  ["0.9"]=17)
 
 # return all running jobids (there should be only one)
 jobid() {
