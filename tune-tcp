@@ -1,0 +1,43 @@
+#!/bin/bash
+# Optimizations from:
+# http://www.ibm.com/developerworks/linux/library/l-hisock/index.html
+# http://fasterdata.es.net/host-tuning/linux/
+# http://russ.garrett.co.uk/2009/01/01/linux-kernel-tuning/
+
+in=(delay)
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+delay=$1 # ms
+
+k=1024; ((m=k*k)); ((g=k*m))
+((bw=1*g))	# Gb/s
+n=4
+#cong=htcp
+cong=cubic
+
+bdp=$(bc -lq <<< "$delay/1000*$bw/8")
+mem_max=$(bc -lq <<< "$n*$bdp" | xargs printf "%1.0f")
+echo "mem_max: $mem_max"
+
+for n in $(cat all_nodes); do
+  # better not touch tcp_mem, if so it's in pages not bytes
+  ssh root@$n "[[ $cong == htcp ]] && modprobe tcp_htcp
+sysctl -w net.core.rmem_max=$mem_max
+sysctl -w net.core.wmem_max=$mem_max
+sysctl -w net.ipv4.tcp_rmem=\"4096 87380 $mem_max\"
+sysctl -w net.ipv4.tcp_wmem=\"4096 65536 $mem_max\"
+sysctl -w net.ipv4.tcp_congestion_control=$cong
+sysctl -w net.ipv4.tcp_max_syn_backlog=4096
+sysctl -w net.core.netdev_max_backlog=2500" &
+done; wait
+
+# defaults:
+# rmem_max=wmem_max=131071
+# tcp_rmem=4096 87380 4194304
+# tcp_wmem=4096 16384 4194304
+# tcp_max_syn_backlog=2048
+# netdev_max_backlog=2500

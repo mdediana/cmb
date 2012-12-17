@@ -1,0 +1,38 @@
+#!/bin/bash
+# https://www.linuxfoundation.org/collaborate/workgroups/networking/netem#Emulating_wide_area_network_delays
+
+in=(delay delay_var delay_corr loss duplication corruption reorder reorder_corr)
+[[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+delay=$1
+delay_var=$2
+delay_corr=$3
+loss=$4
+dupl=$5
+corrupt=$6
+reorder=$7
+reorder_corr=$8
+# reordering also happens depending on delay / delay_var values
+
+[[ $delay_corr == - ]] && dist="" || dist="distribution $delay_corr"
+params="delay ${delay}ms ${delay_var}ms $dist loss ${loss}% duplicate ${dupl}% corrupt ${corrupt}% reorder ${reorder}% ${reorder_corr}%"
+
+eth=$(iface)
+for dc in {1..2}; do
+  other_subnet=$(subnets $(other_dc $dc) 1)
+  ssh_all_p dc-$dc "
+tc qdisc del dev $eth root
+tc qdisc add dev $eth root handle 1: prio bands 2 priomap 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+tc qdisc add dev $eth parent 1:1 handle 10: pfifo
+tc qdisc add dev $eth parent 1:2 handle 20: netem $params
+tc filter add dev $eth parent 1: prio 2 protocol ip u32 match ip dst $other_subnet flowid 1:2"
+#tc -s qdisc ls dev $eth
+done
+
+update_conf_info delay $delay
+
+exit 0
