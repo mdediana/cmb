@@ -6,9 +6,14 @@ cd $TMP_DIR
 
 for f in all_nodes srv_nodes dc-1 dc-2 bench_nodes; do
   echo - $f
+  [[ ! -e $f ]] && echo Do not exist && continue
   echo $(cat $f | cut -d'.' -f1)
 done
 
 echo - free
-pat="$(echo $(cat srv_nodes bench_nodes) | tr ' ' '|')"
-egrep -v $pat all_nodes | cut -d'.' -f1
+if [[ -e srv_nodes ]] && [[ -e bench_nodes ]]; then
+  pat="$(echo $(cat srv_nodes bench_nodes) | tr ' ' '|')"
+  egrep -v $pat all_nodes | cut -d'.' -f1
+else
+  echo All nodes
+fi
