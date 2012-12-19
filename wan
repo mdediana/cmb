@@ -34,5 +34,12 @@ tc filter add dev $eth parent 1: prio 2 protocol ip u32 match ip dst $other_subn
 done
 
 update_conf_info delay $delay
+update_conf_info delay_var $delay_var
+update_conf_info delay_corr $delay_corr
+update_conf_info loss $loss
+update_conf_info dupl $dupl
+update_conf_info corrupt $corrupt
+update_conf_info reorder $reorder
+update_conf_info reorder_corr $reorder_corr
 
 exit 0

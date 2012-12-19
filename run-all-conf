@@ -2,13 +2,22 @@
 
 set -ue
 
-#ms=(ev1 ev2 any lat)
-ms=(lat)
-ls=(0.5 0.9)
-#ls=(0.5)
-ps=(uni par)
-#ps=(uni)
-#rs=(0:1 1:0 9:1 1:1 3:1)
-rs=(1:1)
-#ds=(0 25 50 75 100 125 150)
-ds=(50)
+#modes=(ev1 ev2 any lat)
+modes=(lat)
+#locs=(0.5 0.9)
+locs=(0.5)
+#pops=(uni par)
+pops=(uni)
+#rws=(0:1 1:0 9:1 1:1 3:1)
+rws=(1:1)
+
+#delays=(0 25 50 75 100 125 150)
+delays=(50 150)
+delay_vars=(1 50) # wan/netem use ms, here it is %
+delay_corrs=(- normal)
+losses=(0.05 1)
+dupls=(0.05 5)
+corrupts=(0.05 0.5)
+reorders=(0.05 5)
+reorder_corrs=(10 50)
+congests=(cubic htcp)

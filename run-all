@@ -19,65 +19,89 @@ est_time() {
 
 $CMB_HOME/srvs
 
-((rem=${#ms[@]} * ${#ls[@]} * ${#ps[@]} * ${#rs[@]} * ${#ds[@]}))
+((rem=${#modes[@]} * ${#locs[@]} * ${#pops[@]} * ${#rws[@]} * \
+      ${#delays[@]} * ${#delay_vars[@]} * ${#delay_corrs[@]} * \
+      ${#losses[@]} * ${#dupls[@]} * ${#corrupts[@]} * ${#reorders[@]} * \
+      ${#reorder_corrs[@]} * ${#congests[@]}))
 echo "Number of tests: $rem"
 
 prev=('' '' '' '' '' '')
 started=false
 exec=0
 t0=$(date +%s)
-for m in "${ms[@]}"; do
-  for l in "${ls[@]}"; do
-    for p in "${ps[@]}"; do
-      for r in "${rs[@]}"; do
-        for d in "${ds[@]}"; do
-          for i in $(seq 1 $TESTS); do
-            cur=($m $l $p $r $d $i)
-            cur_str=$(echo ${cur[@]})
-            if [[ -e $done_log ]] && \
-               [[ -n $(grep "$cur_str" $done_log) ]]; then
-              echo Skipping $cur_str
-              prev=(${cur[@]})
-              ((rem--)) || true
-              continue
-            else
-              echo Running $cur_str
-            fi
+for mode in "${modes[@]}"; do
+for loc in "${locs[@]}"; do
+for pop in "${pops[@]}"; do
+for rw in "${rws[@]}"; do
+for delay in "${delays[@]}"; do
+for delay_var in "${delay_vars[@]}"; do
+for delay_corr in "${delay_corrs[@]}"; do
+for loss in "${losses[@]}"; do
+for dupl in "${dupls[@]}"; do
+for corrupt in "${corrupts[@]}"; do
+for reorder in "${reorders[@]}"; do
+for reorder_corr in "${reorder_corrs[@]}"; do
+for congest in "${congests[@]}"; do
+for test in $(seq 1 $TESTS); do
+  cur=($mode $loc $pop $rw $delay $delay_var $delay_corr $loss $dupl \
+       $corrupt $reorder $reorder_corr $congest $test)
+  cur_str=$(echo ${cur[@]})
+  if [[ -e $done_log ]] && \
+     [[ -n $(grep "$cur_str" $done_log) ]]; then
+    echo Skipping $cur_str
+    prev=(${cur[@]})
+    ((rem--)) || true
+    continue
+  else
+    echo Running $cur_str
+  fi
 
-            [[ $m == ev1 ]] || [[ $m == ev2 ]] && c=ev || c=tl
-            # if mode changed or is tl and loc / pop changed or not started yet
-            if [[ $m != ${prev[0]} ]] || \
-               [[ $c == tl && \
-                "${cur[1]}${cur[2]}" != "${prev[1]}${prev[2]}" ]] || \
-               [[ $started == false ]]; then
-              echo "Starting / loading / warming up"
-              $CMB_HOME/delay 0
-              $CMB_HOME/riak $c
-              $CMB_HOME/start	# includes stop
-              $CMB_HOME/conf $m $l $p $r
-              $CMB_HOME/load
-              started=true
-              sleep 15
-            fi
+  [[ $mode == ev1 ]] || [[ $mode == ev2 ]] && consist=ev || consist=tl
+  # if mode changed or is tl and loc / pop changed or not started yet
+  if [[ $mode != ${prev[0]} ]] || \
+     [[ $consist == tl && "${cur[1]}${cur[2]}" != "${prev[1]}${prev[2]}" ]] || \
+     [[ $started == false ]]; then
+    echo "Starting / loading / warming up"
+    $CMB_HOME/tune-tcp 0 cubic
+    $CMB_HOME/wan 0 0 - 0 0 0 0 0
+    $CMB_HOME/riak $consist
+    $CMB_HOME/start	# includes stop
+    $CMB_HOME/conf $mode $loc $pop $rw
+    $CMB_HOME/load
+    started=true
+    sleep 15
+  fi
 
-            $CMB_HOME/delay $d
-            $CMB_HOME/conf $m $l $p $r
-            $CMB_HOME/run
-            sleep 15
+  dv=$(bc -lq <<< "$delay*$delay_var/100" | xargs printf "%1.2f")
+  $CMB_HOME/tune-tcp $delay $congest
+  $CMB_HOME/wan $delay $dv $delay_corr $loss $dupl $corrupt \
+                $reorder $reorder_corr
+  $CMB_HOME/conf $mode $loc $pop $rw
+  $CMB_HOME/run
+  sleep 15
 
-            ((exec++)) || true # when exec == 0, exit status == 1
-            ((rem--)) || true
-            echo ${cur[@]} >> $done_log
-            prev=(${cur[@]})
-            echo "Remaining: $rem / $(est_time)"
-          done
-        done
-      done
-    done
-  done
+  ((exec++)) || true # when exec == 0, exit status == 1
+  ((rem--)) || true
+  echo ${cur[@]} >> $done_log
+  prev=(${cur[@]})
+  echo "Remaining: $rem / $(est_time)"
+done
+done
+done
+done
+done
+done
+done
+done
+done
+done
+done
+done
+done
 done
 
-$CMB_HOME/delay 0
+$CMB_HOME/tune-tcp 0 cubic
+$CMB_HOME/wan 0 0 - 0 0 0 0 0
 $CMB_HOME/stop
 
 echo run-all finished

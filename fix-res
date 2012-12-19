@@ -14,7 +14,8 @@ for d in $(find $RES_DIR/* -maxdepth 0 -type d | sort -r); do
   else
     echo "Last finished: $d"
     params=""
-    for k in w tl_mode locality popularity rw_ratio delay; do
+    for k in w tl_mode locality popularity rw_ratio delay delay_var \
+             delay_corr loss dupl corrupt reorder reorder_corr congest; do
       v=$(get_prop $d/conf_info $k)
       if [[ $k == tl_mode ]]; then
         w=$(get_prop $d/conf_info w)
