@@ -23,12 +23,11 @@ declare -Ax WARMUP_STEPS=(
 
 # return all running jobids (there should be only one)
 jobid() {
-  echo $(oarstat -u | awk 'NR > 2 {print $1, $5}' | grep R | cut -d' ' -f1)
+  oarstat -u | awk '$5 == "R" {print $1}'
 }
 
 subnets() {
   local line=$1; local cols=$2
-  [[ -z $(jobid) ]] && echo "No running job" && return 1
   g5k-subnets -j $(jobid) -a | sed -n "${line}p" | cut -f$cols
 }
 
@@ -47,7 +46,7 @@ ip_in_subnet() {
 }
 
 iface() {
-  local cluster=$(head -1 all_nodes | cut -d- -f1)
+  local cluster=$(hostname | cut -d. -f2)
   [[ $cluster != parapluie ]] && echo eth0 || echo eth1
 }
 
