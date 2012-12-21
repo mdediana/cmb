@@ -82,5 +82,6 @@ update_conf_info tl_mode $tl_mode
 update_conf_info popularity $pop
 update_conf_info locality $locality
 update_conf_info rw_ratio $rw_ratio
+update_conf_info total_keys $TOTAL_KEYS
 
 exit 0

@@ -1,7 +1,7 @@
 #!/bin/bash
 # https://www.linuxfoundation.org/collaborate/workgroups/networking/netem#Emulating_wide_area_network_delays
 
-in=(delay delay_var delay_corr loss duplication corruption reorder reorder_corr)
+in=(delay delay_var loss duplication corruption reorder)
 [[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
 set -ue
@@ -10,17 +10,21 @@ cd $TMP_DIR
 
 delay=$1
 delay_var=$2
-delay_corr=$3
-loss=$4
-dupl=$5
-corrupt=$6
-reorder=$7
-reorder_corr=$8
+loss=$3
+dupl=$4
+corrupt=$5
+reorder=$6
 # reordering also happens depending on delay / delay_var values
 
-[[ $delay_corr == - ]] && dist="" || dist="distribution $delay_corr"
-params="delay ${delay}ms ${delay_var}ms $dist loss ${loss}% duplicate ${dupl}% corrupt ${corrupt}% reorder ${reorder}% ${reorder_corr}%"
+echo Tuning TCP
+$CMB_HOME/tune-tcp $delay
 
+# may round for small delays / delay_vars
+delay_var_ms=$(bc -lq <<< "$delay*$delay_var/100" | xargs printf "%1.0f")
+[[ $delay_var_ms -eq 0 ]] && dist="" || dist="distribution $DELAY_CORR_DIST"
+params="delay ${delay}ms ${delay_var_ms}ms $dist loss ${loss}% duplicate ${dupl}% corrupt ${corrupt}% reorder ${reorder}% $REORDER_CORR%"
+
+echo Configuring WAN
 eth=$(iface)
 for dc in {1..2}; do
   other_subnet=$(subnets $(other_dc $dc) 1)
@@ -35,11 +39,11 @@ done
 
 update_conf_info delay $delay
 update_conf_info delay_var $delay_var
-update_conf_info delay_corr $delay_corr
+update_conf_info delay_corr_dist $DELAY_CORR_DIST
 update_conf_info loss $loss
 update_conf_info dupl $dupl
 update_conf_info corrupt $corrupt
 update_conf_info reorder $reorder
-update_conf_info reorder_corr $reorder_corr
+update_conf_info reorder_corr $REORDER_CORR
 
 exit 0

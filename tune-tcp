@@ -4,7 +4,7 @@
 # http://fasterdata.es.net/host-tuning/linux/
 # http://russ.garrett.co.uk/2009/01/01/linux-kernel-tuning/
 
-in=(delay congest_control)
+in=(delay)
 [[ $# -ne ${#in[@]} ]] && echo "Usage: $(basename $0) ${in[@]}" && exit 1
 
 set -ue
@@ -12,7 +12,6 @@ source $CMB_HOME/env.sh
 cd $TMP_DIR
 
 delay=$1 # ms
-congest=$2
 
 ((bw=1*1024*1024*1024/8)) # 1Gb/s -> B/s
 
@@ -23,9 +22,8 @@ if [[ $delay -eq 0 ]]; then
   max_syn_backlog=2048
   max_backlog=2500
 else
-  n=2
   bdp=$(bc -lq <<< "$delay/1000*$bw/8")
-  mem_max=$(bc -lq <<< "$n*$bdp" | xargs printf "%1.0f")
+  mem_max=$(bc -lq <<< "$BUF_BDP_RATIO*$bdp" | xargs printf "%1.0f")
   tcp_mem=$mem_max
   max_syn_backlog=4096
   max_backlog=2500
@@ -33,15 +31,15 @@ fi
 
 for n in $(cat all_nodes); do
   # better not touch tcp_mem, if so it's in pages not bytes
-  ssh root@$n "[[ $congest == htcp ]] && modprobe tcp_htcp
+  ssh root@$n "[[ $CONGEST == htcp ]] && modprobe tcp_htcp
 sysctl -q -w net.core.rmem_max=$mem_max
 sysctl -q -w net.core.wmem_max=$mem_max
 sysctl -q -w net.ipv4.tcp_rmem=\"4096 87380 $tcp_mem\"
 sysctl -q -w net.ipv4.tcp_wmem=\"4096 65536 $tcp_mem\"
-sysctl -q -w net.ipv4.tcp_congestion_control=$congest
+sysctl -q -w net.ipv4.tcp_congestion_control=$CONGEST
 sysctl -q -w net.ipv4.tcp_max_syn_backlog=$max_syn_backlog
 sysctl -q -w net.core.netdev_max_backlog=$max_backlog" &
 done; wait
 
-update_conf_info mem_max $mem_max
-update_conf_info congest $congest
+update_conf_info buf_bdp_ratio $BUF_BDP_RATIO
+update_conf_info congest $CONGEST

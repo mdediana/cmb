@@ -20,9 +20,8 @@ est_time() {
 $CMB_HOME/srvs
 
 ((rem=${#modes[@]} * ${#locs[@]} * ${#pops[@]} * ${#rws[@]} * \
-      ${#delays[@]} * ${#delay_vars[@]} * ${#delay_corrs[@]} * \
-      ${#losses[@]} * ${#dupls[@]} * ${#corrupts[@]} * ${#reorders[@]} * \
-      ${#reorder_corrs[@]} * ${#congests[@]}))
+      ${#delays[@]} * ${#delay_vars[@]} * ${#losses[@]} * \
+      ${#dupls[@]} * ${#corrupts[@]} * ${#reorders[@]} * $TESTS))
 echo "Number of tests: $rem"
 
 prev=('' '' '' '' '' '')
@@ -35,16 +34,13 @@ for pop in "${pops[@]}"; do
 for rw in "${rws[@]}"; do
 for delay in "${delays[@]}"; do
 for delay_var in "${delay_vars[@]}"; do
-for delay_corr in "${delay_corrs[@]}"; do
 for loss in "${losses[@]}"; do
 for dupl in "${dupls[@]}"; do
 for corrupt in "${corrupts[@]}"; do
 for reorder in "${reorders[@]}"; do
-for reorder_corr in "${reorder_corrs[@]}"; do
-for congest in "${congests[@]}"; do
 for test in $(seq 1 $TESTS); do
-  cur=($mode $loc $pop $rw $delay $delay_var $delay_corr $loss $dupl \
-       $corrupt $reorder $reorder_corr $congest $test)
+  cur=($mode $loc $pop $rw $delay $delay_var $loss $dupl \
+       $corrupt $reorder $test)
   cur_str=$(echo ${cur[@]})
   if [[ -e $done_log ]] && \
      [[ -n $(grep "$cur_str" $done_log) ]]; then
@@ -62,8 +58,7 @@ for test in $(seq 1 $TESTS); do
      [[ $consist == tl && "${cur[1]}${cur[2]}" != "${prev[1]}${prev[2]}" ]] || \
      [[ $started == false ]]; then
     echo "Starting / loading / warming up"
-    $CMB_HOME/tune-tcp 0 cubic
-    $CMB_HOME/wan 0 0 - 0 0 0 0 0
+    $CMB_HOME/wan 0 0 0 0 0 0
     $CMB_HOME/riak $consist
     $CMB_HOME/start	# includes stop
     $CMB_HOME/conf $mode $loc $pop $rw
@@ -72,10 +67,7 @@ for test in $(seq 1 $TESTS); do
     sleep 15
   fi
 
-  dv=$(bc -lq <<< "$delay*$delay_var/100" | xargs printf "%1.2f")
-  $CMB_HOME/tune-tcp $delay $congest
-  $CMB_HOME/wan $delay $dv $delay_corr $loss $dupl $corrupt \
-                $reorder $reorder_corr
+  $CMB_HOME/wan $delay $delay_var $loss $dupl $corrupt $reorder
   $CMB_HOME/conf $mode $loc $pop $rw
   $CMB_HOME/run
   sleep 15
@@ -96,12 +88,8 @@ done
 done
 done
 done
-done
-done
-done
 
-$CMB_HOME/tune-tcp 0 cubic
-$CMB_HOME/wan 0 0 - 0 0 0 0 0
+$CMB_HOME/wan 0 0 0 0 0 0
 $CMB_HOME/stop
 
 echo run-all finished
