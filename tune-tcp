@@ -14,8 +14,7 @@ cd $TMP_DIR
 delay=$1 # ms
 congest=$2
 
-k=1024; ((m=k*k)); ((g=k*m))
-((bw=1*g))	# Gb/s
+((bw=1*1024*1024*1024/8)) # 1Gb/s -> B/s
 
 if [[ $delay -eq 0 ]]; then
   # defaults
@@ -24,7 +23,7 @@ if [[ $delay -eq 0 ]]; then
   max_syn_backlog=2048
   max_backlog=2500
 else
-  n=4
+  n=2
   bdp=$(bc -lq <<< "$delay/1000*$bw/8")
   mem_max=$(bc -lq <<< "$n*$bdp" | xargs printf "%1.0f")
   tcp_mem=$mem_max

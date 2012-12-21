@@ -13,7 +13,7 @@ ping_test() {
 }
 
 sanity_check() {
-  ssh_all_p srv_bench_nodes "cp /proc/meminfo /tmp"
+  ssh_all_p srv_bench_nodes "cp /proc/meminfo /tmp; chmod +w /tmp/meminfo"
   for_all_p srv_bench_nodes "rsync -azq root@\$n:/tmp/meminfo meminfo.\$n"
   for_all_p srv_bench_nodes "ssh root@\$n \"df\" > df_test.\$n"
 
