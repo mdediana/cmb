@@ -1,0 +1,19 @@
+#!/bin/bash
+
+for s in 16 8; do
+for c in 4 2; do
+for t in 64 32; do
+for k in 400000 100000; do
+  echo $s $c $t $k >> sctk.log
+
+  sed -i "s/RIAKS=.*/RIAKS=$s/" env.sh
+  sed -i "s/BENCHS=.*/BENCHS=$c/" env.sh
+  sed -i "s/TOTAL_KEYS=.*/TOTAL_KEYS=$k/" env.sh
+  sed -i "s/{concurrent, .*}/{concurrent, $t}/" bench.config
+
+  ./run-campaign
+  mv ../res/* ../res.2k-size
+done
+done
+done
+done

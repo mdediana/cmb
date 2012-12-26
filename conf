@@ -35,6 +35,8 @@ ops=""
 [[ $clis_dc -eq 0 ]] && clis_dc=1
 ((keys_dc=TOTAL_KEYS/2))
 ((last_key=TOTAL_KEYS-1)) # keys start at 0
+# each warmup step must make a pass over the number of keys
+((warmup_reqs_cli=TOTAL_KEYS/BENCHS))
 
 # prepare all clients for dc1 then for dc2
 for ((c=1, i=1; c<=BENCHS; c++, i+=ips_cli)); do
@@ -52,7 +54,14 @@ s/\${ips}/$ips_str/
 s/\${tl_mode}/$tm/
 s/\${w}/$w/" $CMB_HOME/bench.config > bench.config.$cli
 
+  sed "s/\${locality}/${loc[dc]}/
+s/\${keygen}/$keygen/
+s/\${num_keys}/$last_key/
+s/\${num_reqs}/$warmup_reqs_cli/
+s/\${ips}/$ips_str/" $CMB_HOME/bench-warmup.config > bench-warmup.config.$cli
+
   scp -q bench.config.$cli root@$cli:$BENCH_HOME/bench.config &
+  scp -q bench-warmup.config.$cli root@$cli:$BENCH_HOME/bench-warmup.config &
 done; wait
 
 head -1 bench_nodes-1 > load_nodes
@@ -67,14 +76,7 @@ for dc in {1..2}; do
 s/\${start_key}/$start_key/
 s/\${num_keys}/$keys_dc/" $CMB_HOME/bench-load.config > bench-load.config.$cli
 
-  sed "s/\${locality}/${loc[dc]}/
-s/\${keygen}/$keygen/
-s/\${num_keys}/$last_key/
-s/\${num_reqs}/$keys_dc/
-s/\${ips}/$ips_str/" $CMB_HOME/bench-warmup.config > bench-warmup.config.$cli
-
   scp -q bench-load.config.$cli root@$cli:$BENCH_HOME/bench-load.config &
-  scp -q bench-warmup.config.$cli root@$cli:$BENCH_HOME/bench-warmup.config &
 done; wait
 
 update_conf_info w $w
