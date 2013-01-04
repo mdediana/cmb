@@ -49,6 +49,7 @@ for ((c=1, i=1; c<=BENCHS; c++, i+=ips_cli)); do
 s/\${locality}/${loc[dc]}/
 s/\${keygen}/$keygen/
 s/\${num_keys}/$last_key/
+s/\${object_size}/$OBJECT_SIZE/
 s/\${operations}/$ops/
 s/\${ips}/$ips_str/
 s/\${tl_mode}/$tm/
@@ -58,6 +59,7 @@ s/\${w}/$w/" $CMB_HOME/bench.config > bench.config.$cli
 s/\${keygen}/$keygen/
 s/\${num_keys}/$last_key/
 s/\${num_reqs}/$warmup_reqs_cli/
+s/\${object_size}/$OBJECT_SIZE/
 s/\${ips}/$ips_str/" $CMB_HOME/bench-warmup.config > bench-warmup.config.$cli
 
   scp -q bench.config.$cli root@$cli:$BENCH_HOME/bench.config &
@@ -74,7 +76,9 @@ for dc in {1..2}; do
 
   sed "s/\${ips}/$ips_str/
 s/\${start_key}/$start_key/
-s/\${num_keys}/$keys_dc/" $CMB_HOME/bench-load.config > bench-load.config.$cli
+s/\${num_keys}/$keys_dc/
+s/\${object_size}/$OBJECT_SIZE/" $CMB_HOME/bench-load.config > \
+                                           bench-load.config.$cli
 
   scp -q bench-load.config.$cli root@$cli:$BENCH_HOME/bench-load.config &
 done; wait
@@ -85,5 +89,6 @@ update_conf_info popularity $pop
 update_conf_info locality $locality
 update_conf_info rw_ratio $rw_ratio
 update_conf_info total_keys $TOTAL_KEYS
+update_conf_info object_size $OBJECT_SIZE
 
 exit 0

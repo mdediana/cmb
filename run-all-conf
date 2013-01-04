@@ -2,19 +2,20 @@
 
 set -ue
 
-#modes=(ev1 ev2 any lat)
-modes=(lat)
-#locs=(0.5 0.9)
-locs=(0.5)
+modes=(ev1 ev2 any lat)
+#modes=(lat)
+locs=(0.5 0.9)
+#locs=(0.5)
 pops=(uni)
-#rws=(1:1 9:1)
-rws=(1:1)
+rws=(1:1 9:1)
+#rws=(1:1)
 
-#delays=(0 50 100 150)
-delays=(50)
+delays=(0 50 100 150)
+#delays=(50 150)
 delay_vars=(50)  # %
-#losses=(0 0.05 1)
-losses=(0.05)
+#delay_vars=(0)  # %
+losses=(0 0.05 1)
+#losses=(0)
 dupls=(0)
 corrupts=(0)
 reorders=(0)
