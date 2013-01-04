@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -ue
+source $CMB_HOME/env.sh
+cd $TMP_DIR
+
+option=${1:--s}
+
+case $option in
+  -s) ps -C run-all;;
+  -k) pgid=$(ps -C run-all -o pgid= | tr -d ' ')
+      [[ -n $pgid ]] && kill -TERM -$pgid && echo run-all killed
+
+      ssh_all_p bench_nodes "pid=\$(ps -C beam.smp -o pid= | tr -d ' ')
+[[ -n \$pid ]] && kill -TERM \$pid && echo basho_bench killed"
+
+      ssh_all_p srv_nodes "pgid=\$(ps -C beam.smp -o pgid= | tr -d ' ')
+[[ -n \$pgid ]] && kill -TERM \$pgid && echo riak killed"
+      ssh_all_p srv_nodes "pid=\$(ps -C epmd -o pid= | tr -d ' ')
+[[ -n \$pid ]] && kill -TERM \$pid && echo epmd killed"
+esac 
