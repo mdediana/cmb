@@ -13,25 +13,28 @@ while [[ -z $(jobid) ]]; do sleep 10; echo -n .; done && echo
 oarstat -u -f -j $(jobid) | \
     sed -n 's/ *assigned_hostnames = \(.*\)/\1/p' | tr '+' '\n' > reserv_nodes
 
-echo "Deploying nodes"
-#kadeploy3 -f all --multi-server -a $ENV_URL/$ENV_FILE -k $ENV_URL/authorized_keys > $outfile
-kadeploy3 -a $ENV_FILE -f reserv_nodes -k > $outfile
-[[ $? -ne 0 ]] && echo "Deployment failed" && exit 1
-
-# Sometimes kadeploy report incorrectly deployed nodes as correct in Sophia
-echo Testing nodes
-touch blacklist
-set +e
-for_all_p reserv_nodes \
-    "ssh root@\$n \"echo > \\dev\\null  \" || echo \$n >> blacklist"
-set -e
-echo "Nodes not correctly deployed: $(wc -l < blacklist)"
-grep -vf blacklist reserv_nodes > all_nodes
-
-if [[ -n $(egrep "(ERROR|Cannot run the deployment)" $outfile || true) ]]; then
-  echo -e "Deployment failed.\n $(cat $outfile)"
-  exit 1
-fi
+cp reserv_nodes to_deploy
+touch all_nodes
+while [[ $(wc -l < all_nodes) -lt $((RIAKS+BENCHS)) ]]; do
+  echo "Deploying nodes"
+  kadeploy3 -a $ENV_FILE -f to_deploy -k > $outfile
+  [[ $? -ne 0 ]] && echo "Deployment failed" && exit 1
+  
+  # Sometimes kadeploy report incorrectly deployed nodes as correct in Sophia
+  echo Testing nodes
+  rm to_deploy
+  set +e
+  for_all_p reserv_nodes \
+      "ssh root@\$n \"echo > \\dev\\null  \" || echo \$n >> to_deploy"
+  set -e
+  echo "Nodes not correctly deployed: $(wc -l < to_deploy)"
+  grep -vf to_deploy reserv_nodes > all_nodes
+  
+  if [[ -n $(egrep "(ERROR|Cannot run the deployment)" $outfile || true) ]]; then
+    echo -e "Deployment failed.\n $(cat $outfile)"
+    exit 1
+  fi
+done
 
 echo "Deployment finished"
 exit 0

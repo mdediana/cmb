@@ -5,7 +5,7 @@ source $CMB_HOME/env.sh
 cd $TMP_DIR
 
 # do not delete files created by deploy
-ls $TMP_DIR | egrep -v "reserv_nodes|all_nodes|blacklist" | xargs rm -fr
+ls $TMP_DIR | egrep -v "reserv_nodes|all_nodes" | xargs rm -fr
 
 head -$RIAKS all_nodes > srv_nodes
 head -1 srv_nodes > srv_nodes_1
