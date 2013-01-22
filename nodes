@@ -5,7 +5,7 @@ source $CMB_HOME/env.sh
 cd $TMP_DIR
 
 for f in all_nodes srv_nodes dc-1 dc-2 bench_nodes; do
-  echo - $f
+  echo "- $f ($(wc -l < $f))"
   [[ ! -e $f ]] && echo Do not exist && continue
   echo $(cat $f | cut -d'.' -f1)
 done
