@@ -13,7 +13,7 @@ cd $TMP_DIR
 
 delay=$1 # ms
 
-((bw=1*1024*1024*1024/8)) # 1Gb/s -> B/s
+((bw=NIC_BW*1024*1024/8)) # Mbps -> B/s
 
 if [[ $delay -eq 0 ]]; then
   # defaults

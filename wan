@@ -22,7 +22,7 @@ $CMB_HOME/tune-tcp $delay
 # may round for small delays / delay_vars
 delay_var_ms=$(bc -lq <<< "$delay*$delay_var/100" | xargs printf "%1.0f")
 [[ $delay_var_ms -eq 0 ]] && dist="" || dist="distribution $DELAY_CORR_DIST"
-params="delay ${delay}ms ${delay_var_ms}ms $dist loss ${loss}% duplicate ${dupl}% corrupt ${corrupt}% reorder ${reorder}% $REORDER_CORR%"
+params="delay ${delay}ms ${delay_var_ms}ms $dist loss ${loss}% $LOSS_CORR% duplicate ${dupl}% corrupt ${corrupt}% reorder ${reorder}% $REORDER_CORR%"
 
 echo Configuring WAN
 eth=$(iface)
@@ -32,7 +32,9 @@ for dc in {1..2}; do
 tc qdisc del dev $eth root
 tc qdisc add dev $eth root handle 1: prio bands 2 priomap 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 tc qdisc add dev $eth parent 1:1 handle 10: pfifo
-tc qdisc add dev $eth parent 1:2 handle 20: netem $params
+tc qdisc add dev $eth parent 1:2 handle 20: htb default 1
+tc class add dev $eth parent 20: classid 20:1 htb rate ${WAN_BW}mbit
+tc qdisc add dev $eth parent 20:1 handle 200: netem $params
 tc filter add dev $eth parent 1: prio 2 protocol ip u32 match ip dst $other_subnet flowid 1:2"
 #tc -s qdisc ls dev $eth
 done

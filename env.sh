@@ -20,11 +20,14 @@ export TEST_DURATION=3
 declare -Ax WARMUP_STEPS=(
   ["0.5"]=3
   ["0.9"]=17)
-export DELAY_VAR_PC=50  # %
 export DELAY_CORR_DIST=normal
-export REORDER_CORR=0
+export LOSS_CORR=0
+export REORDER_CORR=10
 export CONGEST=cubic
+#export CONGEST=htcp
 export BUF_BDP_RATIO=2
+export NIC_BW=1024 # Mbps
+export WAN_BW=100 # Mbps
 
 # return all running jobids (there should be only one)
 jobid() {
