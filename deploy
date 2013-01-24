@@ -22,7 +22,7 @@ while [[ $(wc -l < all_nodes) -lt $((RIAKS+BENCHS)) ]]; do
   
   # Sometimes kadeploy report incorrectly deployed nodes as correct in Sophia
   echo Testing nodes
-  rm to_deploy
+  sed -i '1,$d' to_deploy
   set +e
   for_all_p reserv_nodes \
       "ssh root@\$n \"echo > \\dev\\null  \" || echo \$n >> to_deploy"
